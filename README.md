@@ -8,7 +8,58 @@ To use, take the single file `xsequence.wren` and put it into your project
 
 ## Quick Examples
 
-TODO: Examples
+To create an xml document like this:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<fishies amount="2">
+  <danio name="zebra" color="red"/>
+  <danio name="pearl" color="pink"/>
+  <danio>value</danio>
+</fishies>
+```
+
+You can write code like this to build the tree
+
+```javascript
+import "./xsequence" for XDocument, XElement, XAttribute
+
+var doc = XDocument.new(
+    XElement.new("fishies", [
+        XAttribute.new("amount", 2),
+        XElement.new("danio", [
+            XAttribute.new("name", "zebra"),
+            XAttribute.new("color", "red")
+        ]),
+        XElement.new("danio", [
+            XAttribute.new("name", "pearl"),
+            XAttribute.new("color", "pink")
+        ]),
+        XElement.new("danio", "value")
+    ])
+)
+```
+
+Then to save to a string you can either do 
+
+```javascript
+var string = doc.toString
+```
+
+Or for better performance if you are able to write directly to a file stream, you can hook in a custom writer function
+
+```javascript
+doc.write {|s|
+  stream.writeString(s)
+}
+```
+
+To parse xml document, you first load the xml into a string, then parse it with XDocument. In wren_cli you could do something like this
+
+```javascript
+var xmlText = File.read("myDocument.xml")
+var doc = XDocument.parse(xmlText)
+```
 
 ## Testing
 
@@ -25,5 +76,3 @@ The exceptions are caught by default, which loses the call stack. To view the ca
 ## Limitations
 
 - Does not support creating comments. Comments are skipped by the parser.
-
-TODO: Other limitations
