@@ -65,6 +65,7 @@ If we have a document loaded which is like the fishies document shown above, you
 
 ```javascript
 var colorOfFishCalledPearl = doc
+    .root
     .elements("danio")
     .where {|e| e.attribute("name").value == "pearl" }
     .toList[0]
