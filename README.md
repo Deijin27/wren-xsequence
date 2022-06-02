@@ -61,6 +61,17 @@ var xmlText = File.read("myDocument.xml")
 var doc = XDocument.parse(xmlText)
 ```
 
+If we have a document loaded which is like the fishies document shown above, you could navigate the color of a danio fish of name "pearl" like this
+
+```javascript
+var colorOfFishCalledPearl = doc
+    .elements("danio")
+    .where {|e| e.attribute("name").value == "pearl" }
+    .toList[0]
+    .attribute("color")
+    .value
+```
+
 ## Testing
 
 Using [wren-assert](https://github.com/RobLoach/wren-assert) for generic assertions.
