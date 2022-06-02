@@ -1,4 +1,4 @@
-# wren-xsequence
+# XSequence
 
 Xml parser/writer for [Wren](https://wren.io/)
 
