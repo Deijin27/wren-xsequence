@@ -204,11 +204,13 @@ class XParser {
     }
 
     advance() {
+        if (_points[_cur] == Code.NEWLINE) {
+            _line = _line + 1
+            _col = 0
+        } else {
+            _col = _col + 1
+        }
         _cur = _cur + 1
-    }
-
-    advance(amount) {
-        _cur = _cur + amount
     }
 
     expect(point) {
@@ -228,9 +230,18 @@ class XParser {
     }
 
     unexpected(point) {
-        var err = "end of file"
-        if(point != -1) err = String.fromCodePoint(point)
-        Fiber.abort("unexpected `%(err)` at pos %(_cur) at line %(_line):%(_col) (%(point)) in file `%(_source_id)`")
+        var err = ""
+        if (point == Code.EOF) {
+            err = "end of file"
+        } else if (point == Code.NEWLINE) {
+            err = "newline"
+        } else if (point == Code.SPACE) {
+            err = "space"
+        } else {
+            err = String.fromCodePoint(point)
+        }
+        advance()
+        Fiber.abort("unexpected '%(err)' at line %(_line):%(_col)")
     }
 
     skipOptionalWhitespace() {
@@ -282,7 +293,8 @@ class XParser {
                 unexpected(Code.EOF)
             }
             if (n == Code.DASH && peek() == Code.DASH && peek(2) == Code.GREATER_THAN) {
-                advance(2)
+                advance()
+                advance()
                 break
             }
         }
