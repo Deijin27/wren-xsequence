@@ -25,18 +25,18 @@ You can write code like this to build the tree
 import "./xsequence" for XDocument, XElement, XAttribute
 
 var doc = XDocument.new(
-    XElement.new("fishies", [
+    XElement.new("fishies",
         XAttribute.new("amount", 2),
-        XElement.new("danio", [
+        XElement.new("danio",
             XAttribute.new("name", "zebra"),
             XAttribute.new("color", "red")
-        ]),
-        XElement.new("danio", [
+        ),
+        XElement.new("danio",
             XAttribute.new("name", "pearl"),
             XAttribute.new("color", "pink")
-        ]),
+        ),
         XElement.new("danio", "value")
-    ])
+    )
 )
 ```
 
