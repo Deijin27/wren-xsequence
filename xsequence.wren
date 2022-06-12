@@ -591,9 +591,7 @@ class XElement {
         XWriter.writeElement(this, writerCallable)
     }
 
-    // additional arguments after name are contents i.e. elements and attributes
-    // or alternatively, a single value after name is the "value" of the element
-    construct new(name) {
+    init_(name) {
         if (name == null) Fiber.abort("Element name cannot be null")
         if (!(name is String)) Fiber.abort("Element name must be a string")
         _name = name
@@ -602,14 +600,8 @@ class XElement {
         _value = ""
     }
 
-    construct new(name, content) {
-        if (name == null) Fiber.abort("Element name cannot be null")
-        if (!(name is String)) Fiber.abort("Element name must be a string")
-        _name = name
-        _attributes = []
-        _elements = []
-        _value = ""
-
+    init_(name, content) {
+        init_(name)
         if (content == null) {
             Fiber.abort("Element content cannot be null")
         } else if (content is String) {
@@ -622,6 +614,34 @@ class XElement {
             add(content)
         }
     }
+
+    // additional arguments after name are contents i.e. elements and attributes
+    // or alternatively, a single value after name is the "value" of the element
+    construct new(name) {
+        init_(name)
+    }
+
+    construct new(name, content) {
+        init_(name, content)
+    }
+
+    // The following allows dropping the [] in most circumstances
+    // Can't add any more of them because of the 16 parameter limit
+    // If wren adds an "args" syntax at some point, this should be replaced with that
+    construct new(name, c0, c1) { init_(name, [c0, c1]) }
+    construct new(name, c0, c1, c2) { init_(name, [c0, c1, c2]) }
+    construct new(name, c0, c1, c2, c3) { init_(name, [c0, c1, c2, c3]) }
+    construct new(name, c0, c1, c2, c3, c4) { init_(name, [c0, c1, c2, c3, c4]) }
+    construct new(name, c0, c1, c2, c3, c4, c5) { init_(name, [c0, c1, c2, c3, c4, c5]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6) { init_(name, [c0, c1, c2, c3, c4, c5, c6]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13]) }
+    construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14]) }
 
     // The name of this element
     name { _name }

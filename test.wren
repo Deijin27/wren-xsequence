@@ -61,6 +61,42 @@ if (DEBUG) {
     System.print("\n-- TESTING STARTED --\n")
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// TEST SYNTAX /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element constructor syntax without square brackets") {
+    var expected = 
+        XElement.new("fishies", [
+            XAttribute.new("amount", 2),
+            XElement.new("danio", [
+                XAttribute.new("name", "zebra"),
+                XAttribute.new("color", "red")
+            ]),
+            XElement.new("danio", [
+                XAttribute.new("name", "pea<rl"),
+                XAttribute.new("color", "pink")
+            ]),
+            XElement.new("danio", "val>ue")
+        ])
+    
+    var actual = 
+        XElement.new("fishies",
+            XAttribute.new("amount", 2),
+            XElement.new("danio",
+                XAttribute.new("name", "zebra"),
+                XAttribute.new("color", "red")
+            ),
+            XElement.new("danio",
+                XAttribute.new("name", "pea<rl"),
+                XAttribute.new("color", "pink")
+            ),
+            XElement.new("danio", "val>ue")
+        )
+
+    AssertCustom.elementIdentical(actual, expected)
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // TEST STRINGIFY //////////////////////////////////////////////////////////////
