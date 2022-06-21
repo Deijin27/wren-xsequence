@@ -65,6 +65,38 @@ if (DEBUG) {
 // TEST SYNTAX /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+Test.run("Add element") {
+    var parent = XElement.new("parent")
+    var child = XElement.new("child")
+    parent.add(child)
+    Assert.countOf(parent.elements, 1)
+    var c = parent.elements[0]
+    Assert.equal(c, child)
+}
+
+Test.run("Add attribute") {
+    var parent = XElement.new("parent")
+    var child = XAttribute.new("child", "attribute content")
+    parent.add(child)
+    Assert.countOf(parent.attributes, 1)
+    var c = parent.attributes[0]
+    Assert.equal(c, child)
+}
+
+Test.run("Add sequence") {
+    var parent = XElement.new("parent")
+    var childElement = XElement.new("child")
+    var childAttribute = XAttribute.new("child", "attribute content")
+    var children = [childElement, childAttribute]
+    parent.add(children)
+    Assert.countOf(parent.attributes, 1)
+    Assert.countOf(parent.elements, 1)
+    var cElem = parent.elements[0]
+    var cAttr = parent.attributes[0]
+    Assert.equal(cElem, childElement)
+    Assert.equal(cAttr, childAttribute)
+}
+
 Test.run("Element constructor syntax without square brackets") {
     var expected = 
         XElement.new("fishies", [

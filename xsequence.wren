@@ -2,7 +2,7 @@
 
  XSequence
  
- Version : 1.0.0
+ Version : 1.0.1
  Author  : Mia Boulter (Deijin27)
  Licence : MIT
  Website : https://github.com/deijin27/wren-xsequence
@@ -607,10 +607,6 @@ class XElement {
             Fiber.abort("Element content cannot be null")
         } else if (content is String) {
             _value = content
-        } else if (content is Sequence) {
-            for (child in content) {
-                add(child)
-            }
         } else {
             add(content)
         }
@@ -704,7 +700,7 @@ class XElement {
             _elements.add(child)
 
         } else if (child is Sequence) {
-            for (i in Sequence) {
+            for (i in child) {
                 add(i)
             }
         } else {
