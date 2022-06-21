@@ -2,7 +2,8 @@
 
  XSequence
  
- Author  : Mia Boulter
+ Version : 1.0.0
+ Author  : Mia Boulter (Deijin27)
  Licence : MIT
  Website : https://github.com/deijin27/wren-xsequence
 
