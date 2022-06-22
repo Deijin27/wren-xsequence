@@ -2,7 +2,7 @@
 
  XSequence
  
- Version : 1.0.1
+ Version : 1.2.0
  Author  : Mia Boulter (Deijin27)
  Licence : MIT
  Website : https://github.com/deijin27/wren-xsequence
@@ -511,7 +511,7 @@ class XParser {
             } else {
                 numString = ""
             }
-            
+
             while (n != Code.SEMICOLON) {
                 numString = numString + String.fromCodePoint(n)
                 n = next()
