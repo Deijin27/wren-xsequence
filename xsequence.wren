@@ -231,6 +231,10 @@ class XParser {
     }
 
     unexpected(point) {
+        unexpected(point, null)
+    }
+
+    unexpected(point, message) {
         var err = ""
         if (point == Code.EOF) {
             err = "end of file"
@@ -242,8 +246,12 @@ class XParser {
             err = String.fromCodePoint(point)
         }
         advance()
-        Fiber.abort("unexpected '%(err)' at line %(_line):%(_col)")
-    }
+        var errorMessage = "unexpected '%(err)' at line %(_line):%(_col)"
+        if (message != null) {
+            errorMessage = errorMessage + " (%(message))"
+        }
+        Fiber.abort(errorMessage)
+    } 
 
     skipOptionalWhitespace() {
         while (isWhitespace(peek())) {
