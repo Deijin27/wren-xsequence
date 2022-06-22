@@ -217,7 +217,9 @@ var escapeTestCases = [
     ["&quot;", "\""],
     ["&lt;", "<"],
     ["&gt;", ">"],
-    ["&apos;", "'"]
+    ["&apos;", "'"],
+    ["&#x00C9;", "\u00c9"],
+    ["&#201;", "\u00c9"]
 ]
 for (case in escapeTestCases) {
     Test.run("Parse escape %(case[0])") {

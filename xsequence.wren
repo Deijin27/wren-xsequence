@@ -501,8 +501,26 @@ class XParser {
 
         var c = next()
 
-        if (c == _HASH) {
-            // is hex code
+        if (c == Code.HASH) {
+            // $#x00e9;
+            var n = next()
+            var numString
+            if (n == Code.X_LOWER) {
+                numString = "0x"
+                n = next()
+            } else {
+                numString = ""
+            }
+            
+            while (n != Code.SEMICOLON) {
+                numString = numString + String.fromCodePoint(n)
+                n = next()
+            }
+            var num = Num.fromString(numString)
+            if (num == null) {
+                Fiber.abort("Failed to parse unicode escape at line %(_line):%(_col)")
+            }
+            return String.fromCodePoint(num)
 
         } else if (c == Code.Q_LOWER) {
             // &quot;
