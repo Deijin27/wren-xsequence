@@ -197,6 +197,13 @@ Test.run("Parse attribute") {
     AssertCustom.attributeIdentical(attribute, expected)
 }
 
+Test.run("Parse attribute shortcut") {
+    var attributeString = "attrName=\"the attribute value\""
+    var attribute = XAttribute.parse(attributeString)
+    var expected = XAttribute.new("attrName", "the attribute value")
+    AssertCustom.attributeIdentical(attribute, expected)
+}
+
 Test.run("Parse attribute apostrophe") {
     var attributeString = "attrName='the attribute value'"
     var parser = XParser.new(attributeString)
@@ -234,6 +241,13 @@ Test.run("Parse element no-content no attributes") {
     var elementString = "<Elem/>"
     var parser = XParser.new(elementString)
     var result = parser.parseElement()
+    var expected = XElement.new("Elem")
+    AssertCustom.elementIdentical(result, expected)
+}
+
+Test.run("Parse element no-content no attributes shortcut") {
+    var elementString = "<Elem/>"
+    var result = XElement.parse(elementString)
     var expected = XElement.new("Elem")
     AssertCustom.elementIdentical(result, expected)
 }
@@ -358,6 +372,23 @@ Test.run("Parse document") {
 
     var parser = XParser.new(documentString)
     var result = parser.parseDocument()
+
+    AssertCustom.documentIdentical(result, expected)
+}
+
+Test.run("Parse document shortcut") {
+    var documentString = """
+<?xml version="1.0" encoding="utf-8"?>
+<Root attribute="of root"/>
+"""
+
+    var expected = XDocument.new(
+        XElement.new("Root", 
+            XAttribute.new("attribute", "of root")
+        )
+    )
+
+    var result = XDocument.parse(documentString)
 
     AssertCustom.documentIdentical(result, expected)
 }

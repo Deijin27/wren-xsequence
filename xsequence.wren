@@ -545,7 +545,7 @@ class XParser {
 class XAttribute {
     static parse(text) {
         var parser = XParser.new(text)
-        return parser.parseAttribute(text)
+        return parser.parseAttribute()
     }
     toString {
         var result = ""
@@ -579,7 +579,7 @@ class XElement {
 
     static parse(text) {
         var parser = XParser.new(text)
-        return parser.parseElement(text)
+        return parser.parseElement()
     }
     toString {
         var result = ""
@@ -735,7 +735,7 @@ class XElement {
 class XDocument {
     static parse(text) {
         var parser = XParser.new(text)
-        return parser.parseDocument(text)
+        return parser.parseDocument()
     }
     toString {
         var result = ""
