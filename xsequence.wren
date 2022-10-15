@@ -184,9 +184,16 @@ class XParser {
         source = source.replace("\r\n", "\n")
 
         _cur = -1
+        _end = source.count
+
+        // skip utf-8 bom
+        if (source.startsWith("\xEF\xBB\xBF")) {
+            _cur = _cur + 3
+            _end = _end + 3
+        }
+
         _line = 0
         _col = 0
-        _end = source.count
         _points = source.codePoints
         _in_comment = 0
     }
