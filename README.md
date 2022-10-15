@@ -21,7 +21,7 @@ To create an xml document like this:
 
 You can write code like this to build the tree
 
-```javascript
+```wren
 import "./xsequence" for XDocument, XElement, XAttribute
 
 var doc = XDocument.new(
@@ -42,13 +42,13 @@ var doc = XDocument.new(
 
 Then to save to a string you can either do 
 
-```javascript
+```wren
 var string = doc.toString
 ```
 
 Or for better performance if you are able to write directly to a file stream, you can hook in a custom writer function
 
-```javascript
+```wren
 doc.write {|s|
   stream.writeString(s)
 }
@@ -56,14 +56,14 @@ doc.write {|s|
 
 To parse xml document, you first load the xml into a string, then parse it with XDocument. In wren_cli you could do something like this
 
-```javascript
+```wren
 var xmlText = File.read("myDocument.xml")
 var doc = XDocument.parse(xmlText)
 ```
 
 If we have a document loaded which is like the fishies document shown above, you could navigate the color of a danio fish of name "pearl" like this
 
-```javascript
+```wren
 var colorOfFishCalledPearl = doc
     .root
     .elements("danio")
@@ -82,6 +82,8 @@ To run tests use [wren cli](https://github.com/wren-lang/wren-cli)
 ```powershell
 > wren_cli.exe test.wren
 ```
+
+If you're using vscode you can use the automated task
 
 The exceptions are caught by default, which loses the call stack. To view the callstack set at the start of the file the global variable `DEBUG=true`
 
