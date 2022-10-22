@@ -1,5 +1,5 @@
 
-import "./xsequence" for XDocument, XElement, XAttribute, XParser
+import "./xsequence" for XDocument, XElement, XAttribute, XComment, XParser
 import "./wren-assert" for Assert
 
 var DEBUG = false // set true to view the full callstack from a failed test
@@ -38,16 +38,35 @@ class AssertCustom {
         for (i in 0...actual.attributes.count) {
             AssertCustom.attributeIdentical(actual.attributes[i], expected.attributes[i])
         }
-        Assert.countOf(actual.elements, expected.elements.count)
+        Assert.countOf(actual.nodes, expected.nodes.count)
         for (i in 0...actual.elements.count) {
-            AssertCustom.elementIdentical(actual.elements[i], expected.elements[i])
+            AssertCustom.nodeIdentical(actual.nodes[i], expected.nodes[i])
         }
     }
 
     static documentIdentical(actual, expected) {
         Assert.typeOf(actual, XDocument)
         Assert.typeOf(expected, XDocument)
-        elementIdentical(actual.root, expected.root)
+        Assert.countOf(actual.nodes, expected.nodes.count)
+        for (i in 0...actual.elements.count) {
+            AssertCustom.nodeIdentical(actual.nodes[i], expected.nodes[i])
+        }
+    }
+
+    static commentIdentical(actual, expected) {
+        Assert.typeOf(actual, XComment)
+        Assert.typeOf(expected, XComment)
+        Assert.equal(actual.value, expected.value)
+    }
+
+    static nodeIdentical(actual, expected) {
+        if (expected is XComment) {
+            commentIdentical(actual, expected)
+        } else if (expected is XElement) {
+            elementIdentical(actual, expected)
+        } else {
+            Fiber.abort("AssertCustom.nodeIdentical: Object is not an XElement or XComment")
+        }
     }
 }
 
@@ -65,16 +84,25 @@ if (DEBUG) {
 // TEST SYNTAX /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Add element") {
+Test.run("Element: Add element") {
     var parent = XElement.new("parent")
     var child = XElement.new("child")
     parent.add(child)
-    Assert.countOf(parent.elements, 1)
-    var c = parent.elements[0]
+    Assert.countOf(parent.nodes, 1)
+    var c = parent.nodes[0]
     Assert.equal(c, child)
 }
 
-Test.run("Add attribute") {
+Test.run("Element: Add comment") {
+    var parent = XElement.new("parent")
+    var child = XComment.new("child")
+    parent.add(child)
+    Assert.countOf(parent.nodes, 1)
+    var c = parent.nodes[0]
+    Assert.equal(c, child)
+}
+
+Test.run("Element: Add attribute") {
     var parent = XElement.new("parent")
     var child = XAttribute.new("child", "attribute content")
     parent.add(child)
@@ -83,21 +111,21 @@ Test.run("Add attribute") {
     Assert.equal(c, child)
 }
 
-Test.run("Add sequence") {
+Test.run("Element: Add sequence") {
     var parent = XElement.new("parent")
     var childElement = XElement.new("child")
     var childAttribute = XAttribute.new("child", "attribute content")
     var children = [childElement, childAttribute]
     parent.add(children)
     Assert.countOf(parent.attributes, 1)
-    Assert.countOf(parent.elements, 1)
-    var cElem = parent.elements[0]
+    Assert.countOf(parent.nodes, 1)
+    var cElem = parent.nodes[0]
     var cAttr = parent.attributes[0]
     Assert.equal(cElem, childElement)
     Assert.equal(cAttr, childAttribute)
 }
 
-Test.run("Element constructor syntax without square brackets") {
+Test.run("Element: Constructor syntax without square brackets") {
     var expected = 
         XElement.new("fishies", [
             XAttribute.new("amount", 2),
@@ -105,6 +133,7 @@ Test.run("Element constructor syntax without square brackets") {
                 XAttribute.new("name", "zebra"),
                 XAttribute.new("color", "red")
             ]),
+            XComment.new("TheComment"),
             XElement.new("danio", [
                 XAttribute.new("name", "pea<rl"),
                 XAttribute.new("color", "pink")
@@ -119,6 +148,7 @@ Test.run("Element constructor syntax without square brackets") {
                 XAttribute.new("name", "zebra"),
                 XAttribute.new("color", "red")
             ),
+            XComment.new("TheComment"),
             XElement.new("danio",
                 XAttribute.new("name", "pea<rl"),
                 XAttribute.new("color", "pink")
@@ -129,6 +159,62 @@ Test.run("Element constructor syntax without square brackets") {
     AssertCustom.elementIdentical(actual, expected)
 }
 
+Test.run("Document: Add element") {
+    var parent = XDocument.new()
+    var child = XElement.new("child")
+    parent.add(child)
+    Assert.countOf(parent.nodes, 1)
+    var c = parent.nodes[0]
+    Assert.equal(c, child)
+}
+
+Test.run("Document: Add comment") {
+    var parent = XDocument.new()
+    var child = XComment.new("child")
+    parent.add(child)
+    Assert.countOf(parent.nodes, 1)
+    var c = parent.nodes[0]
+    Assert.equal(c, child)
+}
+
+Test.run("Document: Add sequence") {
+    var parent = XDocument.new()
+    var childElement = XElement.new("child")
+    var childComment = XComment.new("child")
+    var children = [childElement, childComment]
+    parent.add(children)
+    Assert.countOf(parent.nodes, 2)
+    Assert.countOf(parent.elements, 1)
+    Assert.countOf(parent.comments, 1)
+    var cElem = parent.nodes[0]
+    var cComm = parent.nodes[1]
+    Assert.equal(cElem, childElement)
+    Assert.equal(cComm, childComment)
+}
+
+Test.run("Document: Constructor syntax without square brackets") {
+    var expected = 
+        XDocument.new([
+            XComment.new("TheFirstComment"),
+            XElement.new("danio", [
+                XAttribute.new("name", "zebra"),
+                XAttribute.new("color", "red")
+            ]),
+            XComment.new("TheComment")
+        ])
+    
+    var actual = 
+        XDocument.new(
+            XComment.new("TheFirstComment"),
+            XElement.new("danio",
+                XAttribute.new("name", "zebra"),
+                XAttribute.new("color", "red")
+            ),
+            XComment.new("TheComment")
+        )
+
+    AssertCustom.documentIdentical(actual, expected)
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // TEST STRINGIFY //////////////////////////////////////////////////////////////
@@ -149,6 +235,7 @@ Test.run("Stringify element") {
                 XAttribute.new("name", "zebra"),
                 XAttribute.new("color", "red")
             ]),
+            XComment.new("TheComment"),
             XElement.new("danio", [
                 XAttribute.new("name", "pea<rl"),
                 XAttribute.new("color", "pink")
@@ -159,6 +246,7 @@ Test.run("Stringify element") {
     var expected = """
 <fishies amount="2">
   <danio name="zebra" color="red"/>
+  <!--TheComment-->
   <danio name="pea&lt;rl" color="pink"/>
   <danio>val&gt;ue</danio>
 </fishies>
@@ -172,17 +260,33 @@ Test.run("Stringify document") {
     var doc = XDocument.new(
         XElement.new("Root", 
             XAttribute.new("attribute", "of root")
-        )
+        ),
+        XComment.new("A Comment")
     )
 
     var expected = """
 <?xml version="1.0" encoding="utf-8"?>
 <Root attribute="of root"/>
+<!--A Comment-->
 """.trim().replace("\r\n", "\n")
 
     var actual = doc.toString
     Assert.equal(actual, expected)
 
+}
+
+Test.run("Stringify comment") {
+    var comment = XComment.new("hell&o")
+    var actual = comment.toString
+    var expected = "<!--hell&o-->"
+    Assert.equal(actual, expected)
+}
+
+Test.run("Stringify comment with escape") {
+    var comment = XComment.new("hello<!---->")
+    var actual = comment.toString
+    var expected = "<!--hello<!- - - - >-->"
+    Assert.equal(actual, expected)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -356,7 +460,11 @@ Test.run("Parse element with comments") {
                         """
     var parser = XParser.new(elementString)
     var result = parser.parseElement()
-    var expected = XElement.new("Elem", XElement.new("Child"))
+    var expected = XElement.new("Elem", 
+        XComment.new(" Comment "), 
+        XElement.new("Child"), 
+        XComment.new(" Another Comment ")
+        )
     AssertCustom.elementIdentical(result, expected)
 }
 
@@ -403,6 +511,8 @@ Test.run("Parse document with comments") {
 """
 
     var expected = XDocument.new(
+        XComment.new(" comment 1 "),
+        XComment.new(" comment 2 "),
         XElement.new("Root", 
             XAttribute.new("attribute", "of root")
         )
