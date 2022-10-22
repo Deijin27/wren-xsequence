@@ -13,10 +13,12 @@ To create an xml document like this:
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <fishies amount="2">
+  <!--This is a comment in an element-->
   <danio name="zebra" color="red"/>
   <danio name="pearl" color="pink"/>
   <danio>value</danio>
 </fishies>
+<!--This is a comment in a document-->
 ```
 
 You can write code like this to build the tree
@@ -26,6 +28,7 @@ import "./xsequence" for XDocument, XElement, XAttribute
 
 var doc = XDocument.new(
     XElement.new("fishies",
+        XComment.new("This is a comment in an element"),
         XAttribute.new("amount", 2),
         XElement.new("danio",
             XAttribute.new("name", "zebra"),
@@ -36,7 +39,8 @@ var doc = XDocument.new(
             XAttribute.new("color", "pink")
         ),
         XElement.new("danio", "value")
-    )
+    ),
+    XComment.new("This is a comment in a document")
 )
 ```
 
@@ -89,5 +93,4 @@ The exceptions are caught by default, which loses the call stack. To view the ca
 
 ## Limitations
 
-- Does not support creating comments. Comments are skipped by the parser.
 - Does not support namespaces. "ns:name" is read as a single string, "xmlns" is interpreted as a normal attribute. I'm unsure whether to implement namespaces "properly" because in my experience the usual implementations just makes it harder to work with in in most use cases. I need to think of something better.
