@@ -9,6 +9,7 @@
 
  */
 
+#internal
 class XWriter {
     static write(obj, writerCallable) {
         if (obj is XDocument) {
@@ -92,6 +93,7 @@ class XWriter {
     }
 }
 
+#internal
 class Code {
     static EOF           { -1   } // end of file
     
@@ -197,6 +199,7 @@ class Code {
     static TILDE         { 0x7E } // ~
 }
 
+#internal
 class XParser {
     construct new(source) {
         source = source.replace("\r", "")
@@ -604,7 +607,9 @@ class XParser {
     }
 }
 
+#abstract
 class XObject {
+    #doc = "Convert to string representation"
     toString {
         var result = ""
         write() {|x|
@@ -618,6 +623,7 @@ class XObject {
     }
 }
 
+#doc = "An XML attribute"
 class XAttribute is XObject {
     static parse(text) {
         var parser = XParser.new(text)
@@ -627,23 +633,32 @@ class XAttribute is XObject {
         XWriter.writeAttribute(this, writerCallable)
     }
 
+    #doc = "Create a new attribute with the given name and value"
     construct new(name, value) {
+        if (!(name is String)) Fiber.abort("Attribute name must be string")
         _name = name
         this.value = value
     }
 
+    #doc = "Get the name of this attribute. The name cannot be changed"
     name { _name }
 
+    #doc = "Get the string value of the attribute"
     value { _value }
+    #doc = "Set the string value of the attribute. If the provided value isn't a string, it will be converted with toString"
     value=(value) {
         if (value == null) {
             _value = ""
+        } else if (value is String) {
+            _value = value
+        } else {
+            _value = value.toString 
         }
-        _value = value.toString 
     }
 
 }
 
+#doc = "An XML comment"
 class XComment is XObject {
     static parse(text) {
         var parser = XParser.new(text)
@@ -653,24 +668,28 @@ class XComment is XObject {
         XWriter.writeComment(this, writerCallable)
     }
 
-    construct new(v) {
-        value = v
+    #doc = "Create a new comment with the given string content"
+    construct new(value) {
+        this.value = value
     }
 
+    #doc = "Get the string content of this comment"
     value { _value }
+    #doc = "Set the string content of this comment"
     value=(v) {
         if (!(v is String)) Fiber.abort("XComment value must be string")
         _value = v
     }
 }
 
+#abstract
 class XContainer is XObject {
 
     init_() {
         _nodes = []
     }
 
-    // Gets the first element of this name, or null if no element of the name exists
+    #doc = "Gets the first element of this name, or null if no element of the name exists"
     element(name) {
         for (e in elements) {
             if (e.name == name) {
@@ -680,20 +699,21 @@ class XContainer is XObject {
         return null
     }
 
-    // Sequence of the child nodes of this element
+    #doc = "Sequence of the child nodes"
     nodes { _nodes }
 
-    // Sequence of the child elements
+    #doc = "Sequence of the child elements"
     elements { _nodes.where {|node| node is XElement } }
 
-    // Gets all elements of the given name. An empty sequence if no elements are found
+    #doc = "Gets all elements of the given name. An empty sequence if no elements are found"
     elements(name) { _nodes.where {|node| node is XElement && node.name == name } }
 
-    // Sequence of the child comments
+    #doc = "Sequence of the child comments"
     comments { _nodes.where {|node| node is XComment }}
 
 }
 
+#doc = "An XML element"
 class XElement is XContainer {
 
     static parse(text) {
@@ -705,9 +725,7 @@ class XElement is XContainer {
     }
 
     init_(name) {
-        if (name == null) Fiber.abort("Element name cannot be null")
-        if (!(name is String)) Fiber.abort("Element name must be a string")
-        _name = name
+        this.name = name
         _attributes = []
         _value = ""
         init_()
@@ -724,12 +742,12 @@ class XElement is XContainer {
         }
     }
 
-    // additional arguments after name are contents i.e. elements and attributes
-    // or alternatively, a single value after name is the "value" of the element
+    #doc = "Creates empty element"
     construct new(name) {
         init_(name)
     }
 
+    #doc = "Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence"
     construct new(name, content) {
         init_(name, content)
     }
@@ -752,17 +770,23 @@ class XElement is XContainer {
     construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13]) }
     construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14]) }
 
-    // The name of this element
+    #doc = "Get the name of this element"
     name { _name }
+    #doc = "Set the name of this element. This must be a string."
+    name=(v) {
+        if (!(v is String)) Fiber.abort("Element name must be string")
+        _name = v
+    }
 
-    // get string content. If content is not a String, returns empty string
+    #doc = "Get string content. If content is not a String, returns empty string"
     value { _value }
+    #doc = "Set string content. This must be a string."
     value=(v) {
         if (!(v is String)) Fiber.abort("Element value must be string")
         _value = v
     }
 
-    // Gets the attribute of this name, or null if no attribute of the name exists
+    #doc = "Gets the attribute of this name, or null if no attribute of the name exists"
     attribute(name) {
         for (a in attributes) {
             if (a.name == name) {
@@ -772,10 +796,10 @@ class XElement is XContainer {
         return null
     }
 
-    // Sequence of the attributes of this element
+    #doc = "Sequence of the attributes of this element"
     attributes { _attributes }
 
-    // add a child XAttribute or XElement, or a Sequence of them
+    #doc = "Add a child node to the document. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
     add(child) {
         if (child is XAttribute) {
             if (attribute(child.name) != null){
@@ -795,7 +819,7 @@ class XElement is XContainer {
         }
     }
 
-    // remove a child XAttribute or XElement
+    #doc = "Remove a child XAttribute or XElement"
     remove(child) {
         if (child is XAttribute) {
             _attributes.remove(child)
@@ -804,8 +828,7 @@ class XElement is XContainer {
         }
     }
 
-    // sets value of existing attribute, or creates new attribute
-    // null value removes the attribute
+    #doc = "Sets value of existing attribute, or creates new attribute. null value removes the attribute"
     setAttributeValue(name, value) {
         if (value == null) {
             _attributes.remove(attribute(name))
@@ -820,6 +843,7 @@ class XElement is XContainer {
     }
 }
 
+#doc = "An XML document"
 class XDocument is XContainer {
     static parse(text) {
         var parser = XParser.new(text)
@@ -829,9 +853,12 @@ class XDocument is XContainer {
         XWriter.writeDocument(this, writerCallable)
     }
 
+    #doc = "Creates an empty document"
     construct new() {
         init_()
     }
+
+    #doc = "Creates a document with content. Content can be XElement, XComment, or Sequence of them"
     construct new(content) {
         init_(content)
     }
@@ -864,8 +891,7 @@ class XDocument is XContainer {
     construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14]) }
     construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15]) }
 
-    // The first and only node in this document that is an XElement
-    // null if there is no XElement in the document
+    #doc = "The first and only node in this document that is an XElement. null if there is no XElement in the document."
     root {
         for (node in nodes) {
             if (node is XElement) {
@@ -875,8 +901,7 @@ class XDocument is XContainer {
         return null
     }
 
-    // Add a child node to the document
-    // This can be an XComment or an XElement
+    #doc = "Add a child node to the document. This can be an XComment or an XElement, or a Sequence of them."
     add(child) {
         if (child is XComment) {
             nodes.add(child)
@@ -894,7 +919,7 @@ class XDocument is XContainer {
         }
     }
 
-    // remove a child XComment or XElement
+    #doc = "Remove a child XComment or XElement"
     remove(child) {
         if (child is XComment || child is XElement) {
             nodes.remove(child)
