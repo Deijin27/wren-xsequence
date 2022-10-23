@@ -6,6 +6,8 @@ Api similar to [C#'s XLinq](https://docs.microsoft.com/en-us/dotnet/standard/lin
 
 To use, take the single file `xsequence.wren` and put it into your project
 
+[Documentation](https://github.com/Deijin27/wren-xsequence/blob/master/README.md)
+
 ## Quick Examples
 
 To create an xml document like this:
