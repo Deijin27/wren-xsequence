@@ -2,19 +2,22 @@
 
  XSequence
  
- Version : 1.2.1
- Author  : Mia Boulter (Deijin27)
+ Version : 2.0.0
+ Author  : Deijin27
  Licence : MIT
  Website : https://github.com/deijin27/wren-xsequence
 
  */
 
+#internal
 class XWriter {
     static write(obj, writerCallable) {
         if (obj is XDocument) {
             writeDocument(obj, writerCallable)
         } else if (obj is XElement) {
             writeElement(obj, writerCallable)
+        } else if (obj is XComment) {
+            writeComment(obj, writerCallable)
         } else if (obj is XAttribute) {
             writeAttribute(obj, writerCallable)
         } else if (obj == null) {
@@ -26,10 +29,21 @@ class XWriter {
 
     static writeDocument(document, writerCallable) {
         writerCallable.call("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
-        if (document.root != null) {
+        for (node in document.nodes) {
             writerCallable.call("\n")
-            writeElement(document.root, writerCallable)
+            if (node is XComment) {
+                writeComment(node, writerCallable)
+            } else if (node is XElement) {
+                writeElement(node, writerCallable)
+            }
         }
+    }
+
+    static writeComment(comment, writerCallable) {
+        writerCallable.call("<!--")
+        // comments only disallow "--"
+        writerCallable.call(comment.value.replace("--", "- - "))
+        writerCallable.call("-->")
     }
 
     static writeElement(element, writerCallable) {
@@ -42,13 +56,17 @@ class XWriter {
             writerCallable.call(" ")
             writeAttribute(attribute, writerCallable)
         }
-        if (element.elements.count > 0) {
+        if (element.nodes.count > 0) {
             var newIndent = indent + "  "
             writerCallable.call(">")
-            for (childElement in element.elements) {
+            for (node in element.nodes) {
                 writerCallable.call("\n")
                 writerCallable.call(newIndent)
-                writeElement(childElement, newIndent, writerCallable)
+                if (node is XComment) {
+                    writeComment(node, writerCallable)
+                } else if (node is XElement) {
+                    writeElement(node, newIndent, writerCallable)
+                }
             }
             writerCallable.call("\n%(indent)</%(element.name)>")
 
@@ -75,11 +93,13 @@ class XWriter {
     }
 }
 
+#internal
 class Code {
     static EOF           { -1   } // end of file
     
     static NEWLINE       { 0x0A } // \n
     static TAB           { 0x09 } // \t
+    static CARRIAGE_RETURN { 0x0D } // \r
     
 
     static SPACE         { 0x20 } //  
@@ -179,9 +199,10 @@ class Code {
     static TILDE         { 0x7E } // ~
 }
 
+#internal
 class XParser {
     construct new(source) {
-        source = source.replace("\r\n", "\n")
+        source = source.replace("\r", "")
 
         _cur = -1
         _end = source.count
@@ -195,7 +216,6 @@ class XParser {
         _line = 0
         _col = 0
         _points = source.codePoints
-        _in_comment = 0
     }
 
     peek() { peek(1) }
@@ -224,12 +244,12 @@ class XParser {
     expect(point) {
         var c = peek()
         if (c != point) {
-            unexpected(c)
+            unexpected(c, "Expected %(String.fromCodePoint(point))")
         }
         advance()
     }
 
-    expect(pointOption1, pointOption2) {
+    expect2(pointOption1, pointOption2) {
         var c = peek()
         if (c != pointOption1 && c != pointOption2) {
             unexpected(c)
@@ -247,8 +267,12 @@ class XParser {
             err = "end of file"
         } else if (point == Code.NEWLINE) {
             err = "newline"
+        } else if (point == Code.TAB) {
+            err = "tab"
         } else if (point == Code.SPACE) {
             err = "space"
+        } else if (point == Code.CARRIAGE_RETURN) {
+            err = "carriage return"
         } else {
             err = String.fromCodePoint(point)
         }
@@ -279,22 +303,25 @@ class XParser {
     }
 
     parseDocument() {
+        var doc = XDocument.new()
         while (true) {
             skipOptionalWhitespace()
-            if (peek() != Code.LESS_THAN) {
-                unexpected(peek())
+            var p1 = peek()
+            if (p1 == Code.EOF) {
+                break
+            } else if (p1 != Code.LESS_THAN) {
+                unexpected(p1, "Expect < at start of node in document")
             }
             var p = peek(2)
             if (p == Code.EXCLAMATION) {
-                parseComment()
-            }  else if (p == Code.QUESTION) {
+                doc.add(parseComment())
+            } else if (p == Code.QUESTION) {
                 parseDeclaration()
-            } else if (p == Code.EOF) {
-                return null
             } else {
-                return XDocument.new(parseElement())
+                doc.add(parseElement())
             }
         }
+        return doc
     }
 
     parseComment() {
@@ -303,25 +330,30 @@ class XParser {
         expect(Code.DASH)
         expect(Code.DASH)
 
+        var value = ""
+
         while (true) {
             var n = next()
             if (n == Code.EOF) {
                 unexpected(Code.EOF)
-            }
-            if (n == Code.DASH && peek() == Code.DASH && peek(2) == Code.GREATER_THAN) {
+            } else if (n == Code.DASH && peek() == Code.DASH && peek(2) == Code.GREATER_THAN) {
                 advance()
                 advance()
                 break
+            } else {
+                value = value + String.fromCodePoint(n)
             }
         }
+
+        return XComment.new(value)
     }
 
     parseDeclaration() {
         expect(Code.LESS_THAN)
         expect(Code.QUESTION)
-        expect(Code.X_UPPER, Code.X_LOWER)
-        expect(Code.M_UPPER, Code.M_LOWER)
-        expect(Code.L_UPPER, Code.L_LOWER)
+        expect2(Code.X_UPPER, Code.X_LOWER)
+        expect2(Code.M_UPPER, Code.M_LOWER)
+        expect2(Code.L_UPPER, Code.L_LOWER)
 
         while (true) {
             var n = next()
@@ -467,7 +499,7 @@ class XParser {
             }
             var p = peek(2)
             if (p == Code.EXCLAMATION) {
-                parseComment()
+                nodes.add(parseComment())
             } else if (p == Code.EOF) {
                 unexpected(p)
             } else {
@@ -483,7 +515,7 @@ class XParser {
     }
 
     parseAttributeValue() {
-        expect(Code.QUOTATION, Code.APOSTROPHE)
+        expect2(Code.QUOTATION, Code.APOSTROPHE)
         var value = ""
         while (true) {
             var p = peek()
@@ -575,63 +607,144 @@ class XParser {
     }
 }
 
-class XAttribute {
-    static parse(text) {
-        var parser = XParser.new(text)
-        return parser.parseAttribute()
-    }
+#abstract
+class XObject {
+    #doc = "Convert to string representation"
     toString {
         var result = ""
-        XWriter.writeAttribute(this) {|x|
+        write() {|x|
             result = result + x
         }
         return result
+    }
+
+    #doc = "Convert to string in parts and pass to a function. Allows more efficient writing to file streams where avaliable"
+    #args(writerCallable)
+    write(writerCallable) {
+        Fiber.abort("write method must be implemented on abstract class XObject")
+    }
+}
+
+#doc = "An XML attribute"
+class XAttribute is XObject {
+    #doc = "Create from string"
+    #args(text)
+    static parse(text) {
+        var parser = XParser.new(text)
+        return parser.parseAttribute()
     }
     write(writerCallable) {
         XWriter.writeAttribute(this, writerCallable)
     }
 
+    #doc = "Create a new attribute with the given name and value"
+    #args(name, value)
     construct new(name, value) {
+        if (!(name is String)) Fiber.abort("Attribute name must be string")
         _name = name
         this.value = value
     }
 
+    #doc = "Get the name of this attribute. The name cannot be changed"
     name { _name }
 
+    #doc = "Get the string value of the attribute"
     value { _value }
+
+    #doc = "Set the string value of the attribute. If the provided value isn't a string, it will be converted with toString"
+    #args(value)
     value=(value) {
         if (value == null) {
             _value = ""
+        } else if (value is String) {
+            _value = value
+        } else {
+            _value = value.toString 
         }
-        _value = value.toString 
     }
 
 }
 
-class XElement {
+#doc = "An XML comment"
+class XComment is XObject {
+    #doc = "Create from string"
+    #args(text)
+    static parse(text) {
+        var parser = XParser.new(text)
+        return parser.parseComment()
+    }
+    write(writerCallable) {
+        XWriter.writeComment(this, writerCallable)
+    }
 
+    #doc = "Create a new comment with the given string content"
+    #args(value)
+    construct new(value) {
+        this.value = value
+    }
+
+    #doc = "Get the string content of this comment"
+    value { _value }
+
+    #doc = "Set the string content of this comment"
+    #args(value)
+    value=(value) {
+        if (!(value is String)) Fiber.abort("XComment value must be string")
+        _value = value
+    }
+}
+
+#abstract
+class XContainer is XObject {
+
+    init_() {
+        _nodes = []
+    }
+
+    #doc = "Gets the first element of this name, or null if no element of the name exists"
+    #args(name)
+    element(name) {
+        for (e in elements) {
+            if (e.name == name) {
+                return e
+            }
+        }
+        return null
+    }
+
+    #doc = "Sequence of the child nodes"
+    nodes { _nodes }
+
+    #doc = "Sequence of the child elements"
+    elements { _nodes.where {|node| node is XElement } }
+
+    #doc = "Gets all elements of the given name. An empty sequence if no elements are found"
+    #args(name)
+    elements(name) { _nodes.where {|node| node is XElement && node.name == name } }
+
+    #doc = "Sequence of the child comments"
+    comments { _nodes.where {|node| node is XComment }}
+
+}
+
+#doc = "An XML element"
+class XElement is XContainer {
+
+    #doc = "Create from string"
+    #args(text)
     static parse(text) {
         var parser = XParser.new(text)
         return parser.parseElement()
-    }
-    toString {
-        var result = ""
-        XWriter.writeElement(this) {|x|
-            result = result + x
-        }
-        return result
     }
     write(writerCallable) {
         XWriter.writeElement(this, writerCallable)
     }
 
     init_(name) {
-        if (name == null) Fiber.abort("Element name cannot be null")
-        if (!(name is String)) Fiber.abort("Element name must be a string")
-        _name = name
+        this.name = name
         _attributes = []
-        _elements = []
         _value = ""
+        init_()
     }
 
     init_(name, content) {
@@ -645,12 +758,14 @@ class XElement {
         }
     }
 
-    // additional arguments after name are contents i.e. elements and attributes
-    // or alternatively, a single value after name is the "value" of the element
+    #doc = "Creates empty element"
+    #args(name)
     construct new(name) {
         init_(name)
     }
 
+    #doc = "Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence"
+    #args(name, content)
     construct new(name, content) {
         init_(name, content)
     }
@@ -673,17 +788,28 @@ class XElement {
     construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13]) }
     construct new(name, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) { init_(name, [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14]) }
 
-    // The name of this element
+    #doc = "Get the name of this element"
     name { _name }
 
-    // get string content. If content is not a String, returns empty string
-    value { _value }
-    value=(v) {
-        if (!(v is String)) Fiber.abort("Element value must be string")
-        _value = v
+    #doc = "Set the name of this element. This must be a string."
+    #args(value)
+    name=(value) {
+        if (!(value is String)) Fiber.abort("Element name must be string")
+        _name = value
     }
 
-    // Gets the attribute of this name, or null if no attribute of the name exists
+    #doc = "Get string content. If content is not a String, returns empty string"
+    value { _value }
+
+    #doc = "Set string content. This must be a string."
+    #args(value)
+    value=(value) {
+        if (!(value is String)) Fiber.abort("Element value must be string")
+        _value = value
+    }
+
+    #doc = "Gets the attribute of this name, or null if no attribute of the name exists"
+    #args(name)
     attribute(name) {
         for (a in attributes) {
             if (a.name == name) {
@@ -693,35 +819,11 @@ class XElement {
         return null
     }
 
-    // Sequence of the attributes of this element
+    #doc = "Sequence of the attributes of this element"
     attributes { _attributes }
 
-    // Gets the first element of this name, or null if no element of the name exists
-    element(name) {
-        for (e in elements) {
-            if (e.name == name) {
-                return e
-            }
-        }
-        return null
-    }
-
-    // Sequence of the child elements of this element
-    elements { _elements }
-
-    // Gets all elements of the given name. An empty sequence if no elements are found
-    elements(name) { elements.where {|e| e.name == name } }
-
-    // returns first attribute or element of name, attributes get priority
-    child(name) {
-        var result = attribute(name)
-        if (attr == null) {
-            result = element(name)
-        }
-        return result
-    }
-
-    // add a child XAttribute or XElement, or a Sequence of them
+    #doc = "Add a child node to the document. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
+    #args(child)
     add(child) {
         if (child is XAttribute) {
             if (attribute(child.name) != null){
@@ -729,8 +831,8 @@ class XElement {
             }
             _attributes.add(child)
 
-        } else if (child is XElement) {
-            _elements.add(child)
+        } else if (child is XComment || child is XElement) {
+            nodes.add(child)
 
         } else if (child is Sequence) {
             for (i in child) {
@@ -741,16 +843,18 @@ class XElement {
         }
     }
 
-    // remove a child XAttribute or XElement
+    #doc = "Remove a child XAttribute or XElement"
+    #args(child)
     remove(child) {
         if (child is XAttribute) {
             _attributes.remove(child)
-        } else if (child is XElement) {
-            _elements.remove(child)
+        } else if (child is XComment || child is XElement) {
+            nodes.remove(child)
         }
     }
 
-    // sets value of existing attribute, or creates new attribute
+    #doc = "Sets value of existing attribute, or creates new attribute. null value removes the attribute"
+    #args(name, value)
     setAttributeValue(name, value) {
         if (value == null) {
             _attributes.remove(attribute(name))
@@ -765,38 +869,92 @@ class XElement {
     }
 }
 
-class XDocument {
+#doc = "An XML document"
+class XDocument is XContainer {
+    #doc = "Create from parsing a string"
+    #args(text)
     static parse(text) {
         var parser = XParser.new(text)
         return parser.parseDocument()
     }
-    toString {
-        var result = ""
-        XWriter.writeDocument(this) {|x|
-            result = result + x
-        }
-        return result
-    }
+
     write(writerCallable) {
         XWriter.writeDocument(this, writerCallable)
     }
 
+    #doc = "Creates an empty document"
     construct new() {
-        _root = null
-    }
-    construct new(rootElement) {
-        root = rootElement
+        init_()
     }
 
-    root { _root }
-    root=(element) {
-        if (element == null) {
-            _root = null
-            return
+    #doc = "Creates a document with content. Content can be XElement, XComment, or Sequence of them"
+    #args(content)
+    construct new(content) {
+        init_(content)
+    }
+
+    init_(content) {
+        init_()
+        if (content == null) {
+            Fiber.abort("XDocument content cannot be null")
+        } else {
+            add(content)
         }
-        if (!(element is XElement)) {
-            Fiber.abort("XDocument root must be XElement")
+    }
+
+    // The following allows dropping the [] in most circumstances
+    // Can't add any more of them because of the 16 parameter limit
+    // If wren adds an "args" syntax at some point, this should be replaced with that
+    construct new(c0, c1) { init_([c0, c1]) }
+    construct new(c0, c1, c2) { init_([c0, c1, c2]) }
+    construct new(c0, c1, c2, c3) { init_([c0, c1, c2, c3]) }
+    construct new(c0, c1, c2, c3, c4) { init_([c0, c1, c2, c3, c4]) }
+    construct new(c0, c1, c2, c3, c4, c5) { init_([c0, c1, c2, c3, c4, c5]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6) { init_([c0, c1, c2, c3, c4, c5, c6]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7) { init_([c0, c1, c2, c3, c4, c5, c6, c7]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14]) }
+    construct new(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) { init_([c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15]) }
+
+    #doc = "The first and only node in this document that is an XElement. null if there is no XElement in the document."
+    root {
+        for (node in nodes) {
+            if (node is XElement) {
+                return node
+            }
         }
-        _root = element
+        return null
+    }
+
+    #doc = "Add a child node to the document. This can be an XComment or an XElement, or a Sequence of them."
+    #args(child)
+    add(child) {
+        if (child is XComment) {
+            nodes.add(child)
+        } else if (child is XElement) {
+            if (root != null) {
+                Fiber.abort("Cannot add more than one XElement to document")
+            }
+            nodes.add(child)
+        } else if (child is Sequence) {
+            for (i in child) {
+                add(i)
+            }
+        } else {
+            Fiber.abort("Invalid child of XDocument '%(child)'")
+        }
+    }
+
+    #doc = "Remove a child XComment or XElement"
+    #args(child)
+    remove(child) {
+        if (child is XComment || child is XElement) {
+            nodes.remove(child)
+        }
     }
 }
