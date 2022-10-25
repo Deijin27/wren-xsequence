@@ -13,6 +13,8 @@ This gives a whole new meaning to "hacky"
 import "io" for Directory, File
 import "meta" for Meta
 
+System.print("# XSequence Documentation\n")
+
 var code = File.read("xsequence.wren")
 
 // Hacky way to make attributes not compiled out
@@ -20,7 +22,7 @@ code = code
   .replace("#doc", "#!doc")
   .replace("#abstract", "#!abstract")
   .replace("#internal", "#!internal")
-  .replace("#args", "#!args")
+  .replace("#arg", "#!arg")
 
 Meta.eval(code)
 
@@ -89,16 +91,17 @@ for (variable in moduleVariables) {
       if (!(signature.contains("_"))) {
         System.print("### " + signature + "\n")
       } else {
-        var args = mAttrAll["args"]
+        var args = mAttrAll["arg"]
         if (args == null) {
-          Fiber.abort("Missing necessary args attribute on %(signature) of %(v)")
+          Fiber.abort("Missing necessary arg attribute on %(signature) of %(v)")
         }
+        var methodArgNames = args["name"]
+        if (methodArgNames == null) {
+          Fiber.abort("Missing name child attribute on arg attribute on %(signature) of %(v)")
+        }
+        // could add arg descriptions in the future too
+        //var argDescs = args["desc"]
         var methodName = signature.split("(")[0]
-        var methodArgNames = args.keys.toList
-        // one final hack because the dictionary keys could be any order
-        methodArgNames.sort {|a, b|
-          return a == "name"
-        }
         var methodArgs = methodArgNames.join(", ")
         System.print("### %(methodName)(%(methodArgs))\n")
       }

@@ -1,3 +1,5 @@
+# XSequence Documentation
+
 ## XDocument
 
 An XML document
