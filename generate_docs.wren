@@ -106,7 +106,7 @@ for (variable in moduleVariables) {
         System.print("### %(methodName)(%(methodArgs))\n")
       }
       
-      System.print(doc[0] + "\n")
+      System.print(doc[0].trim().split("\n").map{|x| x.trim() }.join("\n") + "\n")
     }
   }
 }

@@ -66,7 +66,10 @@ Creates empty element
 
 ### construct new(name, content)
 
-Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence
+Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence.
+
+Anything else is converted with toString. Keep in mind that a Sequence will not be converted with toString,
+but rather, it is iterated over.
 
 ### attributes
 
@@ -130,7 +133,7 @@ Get string content. If content is not a String, returns empty string
 
 ### value=(value)
 
-Set string content. This must be a string.
+Set string content. . If it's not a string, it is converted with toString
 
 ### write(writerCallable)
 
@@ -158,7 +161,7 @@ Get the string content of this comment
 
 ### value=(value)
 
-Set the string content of this comment
+Set the string content of this comment. If it's not a string, it is converted with toString
 
 ### write(writerCallable)
 
@@ -170,7 +173,7 @@ An XML attribute
 
 ### construct new(name, value)
 
-Create a new attribute with the given name and value
+Create a new attribute with the given name and value. If the provided value isn't a string, it will be converted with toString
 
 ### name
 

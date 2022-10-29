@@ -4,6 +4,9 @@ import "./wren-assert" for Assert
 
 var DEBUG = false // set true to view the full callstack from a failed test
 
+var PASSED_TEST_COUNT = 0
+var FAILED_TEST_COUNT = 0
+
 class Test {
     static run(name, callable) {
         if (DEBUG) {
@@ -14,8 +17,10 @@ class Test {
         var testFiber = Fiber.new { callable.call() }
         var error = testFiber.try()
         if (error == null) {
+            PASSED_TEST_COUNT = PASSED_TEST_COUNT + 1
             System.print("+ Passed test '%(name)'")
         } else {
+            FAILED_TEST_COUNT = FAILED_TEST_COUNT + 1
             System.print("- Failed test '%(name)': %(error)")
         }
     }
@@ -84,6 +89,27 @@ if (DEBUG) {
 // TEST SYNTAX /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+Test.run("Attribute: Set value converted to string") {
+    var a = XAttribute.new("name", 69)
+    Assert.equal(a.value, "69")
+    a.value = 4
+    Assert.equal(a.value, "4")
+}
+
+Test.run("Element: Set value converted to string") {
+    var e = XElement.new("name", 69)
+    Assert.equal(e.value, "69")
+    e.value = 2
+    Assert.equal(e.value, "2")
+}
+
+Test.run("Comment: Set value converted to string") {
+    var c = XComment.new(69)
+    Assert.equal(c.value, "69")
+    c.value = 0
+    Assert.equal(c.value, "0")
+}
+
 Test.run("Element: Add element") {
     var parent = XElement.new("parent")
     var child = XElement.new("child")
@@ -109,6 +135,14 @@ Test.run("Element: Add attribute") {
     Assert.countOf(parent.attributes, 1)
     var c = parent.attributes[0]
     Assert.equal(c, child)
+}
+
+Test.run("Element: Duplicate attributes should abort fiber") {
+    var parent = XElement.new("parent")
+    var child1 = XAttribute.new("child", "attribute content")
+    var child2 = XAttribute.new("child", "other attribute content")
+    parent.add(child1)
+    Assert.aborts(Fn.new { parent.add(child2) })
 }
 
 Test.run("Element: Add sequence") {
@@ -157,6 +191,18 @@ Test.run("Element: Constructor syntax without square brackets") {
         )
 
     AssertCustom.elementIdentical(actual, expected)
+}
+
+Test.run("Element: Construct with string value and attribute") {
+    var e1 = XElement.new("name", XAttribute.new("name", "attrValue"), "elementValue")
+    Assert.equal(e1.value, "elementValue")
+    Assert.countOf(e1.attributes, 1)
+}
+
+Test.run("Element: Construct with non-string value and attribute") {
+    var e2 = XElement.new("name", XAttribute.new("name", "attrValue"), 2)
+    Assert.equal(e2.value, "2")
+    Assert.countOf(e2.attributes, 1)
 }
 
 Test.run("Document: Add element") {
@@ -529,3 +575,5 @@ Test.run("Parse document with comments") {
 ////////////////////////////////////////////////////////////////////////////////
 
 System.print("\n-- TESTING COMPLETE --\n")
+
+System.print("PASSED: %(PASSED_TEST_COUNT)/%(PASSED_TEST_COUNT + FAILED_TEST_COUNT)")

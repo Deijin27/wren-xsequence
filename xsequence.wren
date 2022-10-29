@@ -2,7 +2,7 @@
 
  XSequence
  
- Version : 2.0.0
+ Version : 2.1.0
  Author  : Deijin27
  Licence : MIT
  Website : https://github.com/deijin27/wren-xsequence
@@ -637,7 +637,7 @@ class XAttribute is XObject {
         XWriter.writeAttribute(this, writerCallable)
     }
 
-    #doc = "Create a new attribute with the given name and value"
+    #doc = "Create a new attribute with the given name and value. If the provided value isn't a string, it will be converted with toString"
     #arg(name=name)
     #arg(name=value)
     construct new(name, value) {
@@ -687,11 +687,16 @@ class XComment is XObject {
     #doc = "Get the string content of this comment"
     value { _value }
 
-    #doc = "Set the string content of this comment"
+    #doc = "Set the string content of this comment. If it's not a string, it is converted with toString"
     #arg(name=value)
     value=(value) {
-        if (!(value is String)) Fiber.abort("XComment value must be string")
-        _value = value
+        if (value == null) {
+            _value = ""
+        } else if (value is String) {
+            _value = value
+        } else {
+            _value = value.toString 
+        }
     }
 }
 
@@ -750,12 +755,23 @@ class XElement is XContainer {
 
     init_(name, content) {
         init_(name)
-        if (content == null) {
-            Fiber.abort("Element content cannot be null")
-        } else if (content is String) {
-            _value = content
+        // be careful here, a String is a Sequence so this check must come before the Sequence one
+        if (content is String) {
+            value = content
+            return
+        } else if (content is Sequence) {
+            // Support setting value and attributes during construction
+            for (child in content) {
+                if (child is XObject) {
+                    addInternal_(child)
+                } else {
+                    value = child
+                }
+            }
+        } else if (content is XObject) {
+            addInternal_(content)
         } else {
-            add(content)
+            value = content
         }
     }
 
@@ -765,7 +781,12 @@ class XElement is XContainer {
         init_(name)
     }
 
-    #doc = "Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence"
+    #doc = """
+    Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence.
+    
+    Anything else is converted with toString. Keep in mind that a Sequence will not be converted with toString,
+    but rather, it is iterated over.
+    """
     #arg(name=name)
     #arg(name=content)
     construct new(name, content) {
@@ -803,11 +824,16 @@ class XElement is XContainer {
     #doc = "Get string content. If content is not a String, returns empty string"
     value { _value }
 
-    #doc = "Set string content. This must be a string."
+    #doc = "Set string content. . If it's not a string, it is converted with toString"
     #arg(name=value)
     value=(value) {
-        if (!(value is String)) Fiber.abort("Element value must be string")
-        _value = value
+        if (value == null) {
+            _value = ""
+        } else if (value is String) {
+            _value = value
+        } else {
+            _value = value.toString 
+        }
     }
 
     #doc = "Gets the attribute of this name, or null if no attribute of the name exists"
@@ -824,9 +850,8 @@ class XElement is XContainer {
     #doc = "Sequence of the attributes of this element"
     attributes { _attributes }
 
-    #doc = "Add a child node to the document. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
-    #arg(name=child)
-    add(child) {
+    // internal add that doesn't accept sequence
+    addInternal_(child) {
         if (child is XAttribute) {
             if (attribute(child.name) != null){
                 Fiber.abort("Duplicate XAttribute of name '%(child.name)'")
@@ -835,13 +860,23 @@ class XElement is XContainer {
 
         } else if (child is XComment || child is XElement) {
             nodes.add(child)
-
-        } else if (child is Sequence) {
-            for (i in child) {
-                add(i)
-            }
         } else {
             Fiber.abort("Invalid child of XElement '%(child)'")
+        }
+    }
+
+    #doc = "Add a child node to the document. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
+    #arg(name=child)
+    add(child) {
+        if (child is String) {
+            // ensure more useful error if it's a string, which is a Sequence
+            Fiber.abort("Invalid child of XElement '%(child)'")
+        } else if (child is Sequence) {
+            for (i in child) {
+                addInternal_(i)
+            }
+        } else {
+            addInternal_(child)
         }
     }
 
@@ -934,9 +969,8 @@ class XDocument is XContainer {
         return null
     }
 
-    #doc = "Add a child node to the document. This can be an XComment or an XElement, or a Sequence of them."
-    #arg(name=child)
-    add(child) {
+    // internal add that doesn't allow sequence
+    addInternal_(child) {
         if (child is XComment) {
             nodes.add(child)
         } else if (child is XElement) {
@@ -944,12 +978,20 @@ class XDocument is XContainer {
                 Fiber.abort("Cannot add more than one XElement to document")
             }
             nodes.add(child)
-        } else if (child is Sequence) {
-            for (i in child) {
-                add(i)
-            }
         } else {
             Fiber.abort("Invalid child of XDocument '%(child)'")
+        }
+    }
+
+    #doc = "Add a child node to the document. This can be an XComment or an XElement, or a Sequence of them."
+    #arg(name=child)
+    add(child) {
+        if (child is Sequence) {
+            for (i in child) {
+                addInternal_(i)
+            }
+        } else {
+            addInternal_(child)
         }
     }
 
