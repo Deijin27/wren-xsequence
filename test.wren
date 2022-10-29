@@ -145,6 +145,16 @@ Test.run("Element: Duplicate attributes should abort fiber") {
     Assert.aborts(Fn.new { parent.add(child2) })
 }
 
+Test.run("Element: Add string aborts fiber") {
+    var element = XElement.new("name")
+    Assert.aborts(Fn.new { element.add("string value") })
+}
+
+Test.run("Document: Add string aborts fiber") {
+    var doc = XDocument.new()
+    Assert.aborts(Fn.new { doc.add("string value") })
+}
+
 Test.run("Element: Add sequence") {
     var parent = XElement.new("parent")
     var childElement = XElement.new("child")
