@@ -26,7 +26,7 @@ To create an xml document like this:
 You can write code like this to build the tree
 
 ```wren
-import "./xsequence" for XDocument, XElement, XAttribute
+import "./xsequence" for XDocument, XElement, XAttribute, XComment
 
 var doc = XDocument.new(
     XElement.new("fishies",
