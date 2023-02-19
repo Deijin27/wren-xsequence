@@ -95,4 +95,4 @@ The exceptions are caught by default, which loses the call stack. To view the ca
 
 ## Limitations
 
-- Does not support namespaces. "ns:name" is read as a single string, "xmlns" is interpreted as a normal attribute. I'm unsure whether to implement namespaces "properly" because in my experience the usual implementations just makes it harder to work with in in most use cases. I need to think of something better.
+- Does not support namespaces. "ns:name" is read as a single string, "xmlns" is interpreted as a normal attribute. See plans in [#9](https://github.com/Deijin27/wren-xsequence/issues/9)
