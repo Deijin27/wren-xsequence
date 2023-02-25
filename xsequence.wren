@@ -9,73 +9,166 @@
 
  */
 
+#doc = "A utility class for working with XML namespaces"
+ class XNamespace {
+    static xmlns { "https://www.w3.org/2000/xmlns/" }
+    static xml { "http://www.w3.org/XML/1998/namespace" }
+}
+
 #internal
-class XWriter {
-    static write(obj, writerCallable) {
-        if (obj is XDocument) {
-            writeDocument(obj, writerCallable)
-        } else if (obj is XElement) {
-            writeElement(obj, writerCallable)
-        } else if (obj is XComment) {
-            writeComment(obj, writerCallable)
-        } else if (obj is XAttribute) {
-            writeAttribute(obj, writerCallable)
-        } else if (obj == null) {
-            Fiber.abort("XWriter cannot write null")
-        } else {
-            Fiber.abort("XWriter cannot write type '%(obj.type)'")
+class NamespaceStack {
+    construct new() {
+        _current = 0
+        _stack = [{"xmlns": XNamespace.xmlns, "xml": XNamespace.xml}]
+        _autoNsIncrement = -1
+    }
+
+    push() {
+        _current = _current + 1
+        if (_stack.count <= _current) {
+            _stack.add({})
         }
     }
 
-    static writeDocument(document, writerCallable) {
-        writerCallable.call("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
-        for (node in document.nodes) {
-            writerCallable.call("\n")
-            if (node is XComment) {
-                writeComment(node, writerCallable)
-            } else if (node is XElement) {
-                writeElement(node, writerCallable)
+    pop() {
+        // reuse the dictionaries rather than creating new ones each time
+        _stack[_current].clear()
+        _current = _current - 1
+    }
+
+    getValue(prefix) {
+        for (i in _current..0) {
+            var value = _stack[i][prefix]
+            if (value != null) {
+                return value
             }
         }
+        Fiber.abort("Use of undefined namespace prefix '%(prefix)'")
     }
 
-    static writeComment(comment, writerCallable) {
-        writerCallable.call("<!--")
-        // comments only disallow "--"
-        writerCallable.call(comment.value.replace("--", "- - "))
-        writerCallable.call("-->")
-    }
-
-    static writeElement(element, writerCallable) {
-        writeElement(element, "", writerCallable)
-    }
-
-    static writeElement(element, indent, writerCallable) {
-        writerCallable.call("<%(element.name)")
-        for (attribute in element.attributes) {
-            writerCallable.call(" ")
-            writeAttribute(attribute, writerCallable)
-        }
-        if (element.nodes.count > 0) {
-            var newIndent = indent + "  "
-            writerCallable.call(">")
-            for (node in element.nodes) {
-                writerCallable.call("\n")
-                writerCallable.call(newIndent)
-                if (node is XComment) {
-                    writeComment(node, writerCallable)
-                } else if (node is XElement) {
-                    writeElement(node, newIndent, writerCallable)
+    getPrefix(value) {
+        for (i in _current..0) {
+            var dict = _stack[i]
+            for (kvp in dict) {
+                if (kvp.value == value) {
+                    var prefix = kvp.key
+                    // make sure this is the latest defined one
+                    // since the prefix could have been redefined
+                    var valueBack = getValue(prefix)
+                    if (valueBack == value) {
+                        return prefix
+                    }
                 }
             }
-            writerCallable.call("\n%(indent)</%(element.name)>")
-
-        } else if (element.value != null && element.value != "") {
-            var elementVal = escape(element.value)
-            writerCallable.call(">%(elementVal)</%(element.name)>")
-        } else {
-            writerCallable.call("/>")
         }
+        Fiber.abort("Use of undefined namespace '%(value)'")
+    }
+
+    // gets a prefix corresponding to a namespace, else creates a new one
+    // this specifically excludes the default namespace, which can't be used for attributes
+    getNonDefaultPrefix(value) {
+        for (i in _current..0) {
+            var dict = _stack[i]
+            for (kvp in dict) {
+                if (kvp.value == value) {
+                    var prefix = kvp.key
+                    // make sure this isn't null
+                    if (prefix == null) {
+                        continue
+                    }
+                    // make sure this is the latest defined one
+                    // since the prefix could have been redefined
+                    var valueBack = getValue(prefix)
+                    if (valueBack == value) {
+                        return prefix
+                    }
+                }
+            }
+        }
+        Fiber.abort("Use of undefined namespace '%(value)' in attribute which require explicit prefix")
+        return prefix
+    }
+
+    setPrefixValue(prefix, value) {
+        _stack[_current][prefix] = value
+    }
+}
+
+#doc = "A utility class for working with XML names and namespaces"
+class XName {
+    #doc = "Split a string of format '{namespace}localName' into an XName which has properties to access it's namespace and local name"
+    #arg(name=name)
+    static split(name) {
+        if (name[0] != "{") {
+            // does not have namespace
+            return XName.new_(null, name)
+        } else {
+            // has namespace
+            var idx = name.indexOf("}")
+            return XName.new_(name[1...idx], name[(idx + 1)..-1])
+        }
+    }
+
+    #doc = "Build a name string from it's components"
+    #arg(name=namespace)
+    #arg(name=localName)
+    static build(namespace, localName) {
+        return "{%(namespace)}%(localName)"
+    }
+
+    construct new_(namespace, localName) {
+        _localName = localName
+        _namespace = namespace
+    }
+
+    #doc = "The namespace of this XML name"
+    namespace { _namespace }
+    #doc = "The local name of this XML name"
+    localName { _localName }
+    #doc = "Convert to string"
+    toString {
+        if (_namespace == null) {
+            return _localName
+        }
+        return XName.build(_namespace, _localName)
+    }
+
+    static splitFast(name) {
+        // name is "{blue}bird"
+        if (name[0] != "{") {
+            // does not have namespace
+            return null
+        } else {
+            // has namespace
+            var idx = name.indexOf("}")
+            return XName.new_(name[1...idx], name[(idx + 1)..-1])
+        }
+    }
+
+    static splitPrefixFast(name) {
+        // name is "b:bird"
+        var colonPos = name.indexOf(":")
+        if (colonPos == -1) {
+            return null
+        } else {
+            return XName.new_(name[0...colonPos], name[(colonPos+1)..-1])
+        }
+    }
+}
+
+#internal
+class XWriter {
+
+    construct new(writerCallable) {
+        _writerCallable = writerCallable
+        _namespaceStack = NamespaceStack.new()
+        __xmlnsWrapped = "{%(XNamespace.xmlns)}"
+    }
+
+    construct new(namespaceStack, writerCallable) {
+        _writerCallable = writerCallable
+        _namespaceStack = namespaceStack
+        __xmlnsWrapped = "{%(XNamespace.xmlns)}"
     }
 
     static escape(str) {
@@ -87,9 +180,109 @@ class XWriter {
             .replace("'", "&apos;")
     }
 
-    static writeAttribute(attribute, writerCallable) {
-        var value = escape(attribute.value)
-        return writerCallable.call("%(attribute.name)=\"%(value)\"")
+    // Namespace-Aware Writers
+
+    writeComment(comment) {
+        _writerCallable.call("<!--")
+        // comments only disallow "--"
+        _writerCallable.call(comment.value.replace("--", "- - "))
+        _writerCallable.call("-->")
+    }
+
+    writeAttribute(attribute) {
+        var value = XWriter.escape(attribute.value)
+        // handle namespace
+        var name = attribute.name
+        var split = XName.splitFast(attribute.name)
+        if (split != null) {
+            var prefix = _namespaceStack.getNonDefaultPrefix(split.namespace)
+            name = "%(prefix):%(split.localName)"
+        }
+        _writerCallable.call("%(name)=\"%(value)\"")
+    }
+
+    writeElement(element) {
+        writeElement(element, "")
+    }
+
+    loadNamespacesFromAttributes(element) {
+        for (attribute in element.attributes) {
+            if (attribute.name == "xmlns") {
+                _namespaceStack.setPrefixValue(null, attribute.value) 
+            } else if (attribute.name.startsWith(__xmlnsWrapped)) {
+                _namespaceStack.setPrefixValue(attribute.name[__xmlnsWrapped.count..-1], attribute.value)
+            }
+        }
+    }
+
+    writeElement(element, indent) {
+        // begin a new namespace scope for each element
+        _namespaceStack.push()
+
+        // load namespaces from attributes
+        loadNamespacesFromAttributes(element)
+
+        // get the element's name, applying namespace prefix if necessary
+        var name = element.name
+        var elementNameSplit = XName.splitFast(element.name)
+        if (elementNameSplit != null) {
+            var prefix = _namespaceStack.getPrefix(elementNameSplit.namespace)
+            // if the prefix is xmlns, which may have been defined above when parsing the attributes
+            // then that is the default namespace, and can be omitted
+            if (prefix != null) {
+                name = "%(prefix):%(elementNameSplit.localName)"
+            } else {
+                name = elementNameSplit.localName
+            }
+        }
+
+        // write element opening tag
+        _writerCallable.call("<%(name)")
+        
+        // write attributes
+        for (attribute in element.attributes) {
+            _writerCallable.call(" ")
+            writeAttribute(attribute)
+        }
+
+        if (element.nodes.count > 0) {
+            // write element content nodes
+            var newIndent = indent + "  "
+            _writerCallable.call(">")
+            for (node in element.nodes) {
+                _writerCallable.call("\n")
+                _writerCallable.call(newIndent)
+                if (node is XComment) {
+                    writeComment(node)
+                } else if (node is XElement) {
+                    writeElement(node, newIndent)
+                }
+            }
+            _writerCallable.call("\n%(indent)</%(name)>")
+
+        } else if (element.value != null && element.value != "") {
+            // write non-empty element value and full closing tag
+            var elementVal = XWriter.escape(element.value)
+            _writerCallable.call(">%(elementVal)</%(name)>")
+        } else {
+            // element has no value, write short closing tag
+            _writerCallable.call("/>")
+        }
+
+        // end the namespace scope when element has been written
+        _namespaceStack.pop()
+    }
+
+    writeDocument(document) {
+        _writerCallable.call("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
+        for (node in document.nodes) {
+            _writerCallable.call("\n")
+            if (node is XComment) {
+                writeComment(node)
+            } else if (node is XElement) {
+                writeElement(node)
+            }
+        }
     }
 }
 
@@ -202,6 +395,7 @@ class Code {
 #internal
 class XParser {
     construct new(source) {
+        _namespaceStack = NamespaceStack.new()
         source = source.replace("\r", "")
 
         _cur = -1
@@ -368,6 +562,9 @@ class XParser {
     }
 
     parseElement() {
+        // begin a new namespace scope for each element
+        _namespaceStack.push()
+
         expect(Code.LESS_THAN)
 
         var name = parseElementName()
@@ -379,6 +576,7 @@ class XParser {
             var p = peek()
 
             if (p == Code.SLASH) {
+                processElementNamespaces(element)
                 // no-content closing tag
                 advance()
                 expect(Code.GREATER_THAN)
@@ -386,6 +584,7 @@ class XParser {
 
             } else if (p == Code.GREATER_THAN) {
                 // parse element content
+                processElementNamespaces(element)
                 advance()
                 var content = parseElementContent()
                 if (content is String) {
@@ -418,7 +617,43 @@ class XParser {
             }
         }
         
+        // end namespace scope at end of element
+        _namespaceStack.pop()
         return element
+    }
+
+    processElementNamespaces(element) {
+        // load namespaces from attributes
+        for (attribute in element.attributes) {
+            if (attribute.name == "xmlns") {
+                _namespaceStack.setPrefixValue(null, attribute.value) 
+            } else if (attribute.name.startsWith("xmlns:")) {
+                _namespaceStack.setPrefixValue(attribute.name[6..-1], attribute.value)
+            }
+        }
+
+        // apply namespaces to elements
+        var elementNameSplit = XName.splitPrefixFast(element.name)
+        if (elementNameSplit != null) {
+            var value = _namespaceStack.getValue(elementNameSplit.namespace)
+            // if the prefix is xmlns, which may have been defined above when parsing the attributes
+            // then that is the default namespace, and can be omitted
+            if (value != null) {
+                element.name = "{%(value)}%(elementNameSplit.localName)"
+            } else {
+                element.name = elementNameSplit.localName
+            }
+        }
+
+        // apply namespaces to attributes
+        for (attribute in element.attributes) {
+            var name = attribute.name
+            var split = XName.splitPrefixFast(attribute.name)
+            if (split != null) {
+                var value = _namespaceStack.getValue(split.namespace)
+                attribute.name = "{%(value)}%(split.localName)"
+            }
+        }
     }
 
     parseElementName() {
@@ -634,7 +869,8 @@ class XAttribute is XObject {
         return parser.parseAttribute()
     }
     write(writerCallable) {
-        XWriter.writeAttribute(this, writerCallable)
+        var writer = XWriter.new(writerCallable)
+        writer.writeAttribute(this)
     }
 
     #doc = "Create a new attribute with the given name and value. If the provided value isn't a string, it will be converted with toString"
@@ -644,6 +880,18 @@ class XAttribute is XObject {
         if (!(name is String)) Fiber.abort("Attribute name must be string")
         _name = name
         this.value = value
+    }
+
+    static xmlns(value) {
+        return XAttribute.new("xmlns", value)
+    }
+
+    static xmlns(localName, value) {
+        return XAttribute.new("{%(XNamespace.xmlns)}%(localName)", value)
+    }
+
+    static xml(localName, value) {
+        return XAttribute.new("{%(XNamespace.xml)}%(localName)", value)
     }
 
     #doc = "Get the name of this attribute. The name cannot be changed"
@@ -675,7 +923,8 @@ class XComment is XObject {
         return parser.parseComment()
     }
     write(writerCallable) {
-        XWriter.writeComment(this, writerCallable)
+        var writer = XWriter.new(writerCallable)
+        writer.writeComment(this)
     }
 
     #doc = "Create a new comment with the given string content"
@@ -743,7 +992,8 @@ class XElement is XContainer {
         return parser.parseElement()
     }
     write(writerCallable) {
-        XWriter.writeElement(this, writerCallable)
+        var writer = XWriter.new(writerCallable)
+        writer.writeElement(this)
     }
 
     init_(name) {
@@ -917,7 +1167,8 @@ class XDocument is XContainer {
     }
 
     write(writerCallable) {
-        XWriter.writeDocument(this, writerCallable)
+        var writer = XWriter.new(writerCallable)
+        writer.writeDocument(this)
     }
 
     #doc = "Creates an empty document"
@@ -1003,3 +1254,4 @@ class XDocument is XContainer {
         }
     }
 }
+

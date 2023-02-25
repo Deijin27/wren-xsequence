@@ -10,7 +10,7 @@ class Assert {
    * Assert that the two given values are equal.
    */
   static equal(actual, expected) {
-    equal(actual, expected, "Expected inputs to be equal (actual != expected): %(actual) != %(expected)")
+    equal(actual, expected, "Expected inputs to be equal (actual != expected):\n\n%(actual)\n\n!=\n\n%(expected)\n\n")
   }
 
   /**

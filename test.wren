@@ -1,5 +1,5 @@
 
-import "./xsequence" for XDocument, XElement, XAttribute, XComment, XParser
+import "./xsequence" for XDocument, XElement, XAttribute, XComment, XParser, XWriter, XName, NamespaceStack
 import "./wren-assert" for Assert
 
 var DEBUG = false // set true to view the full callstack from a failed test
@@ -86,6 +86,69 @@ if (DEBUG) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// TEST INTERNAL ///////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Namespace Stack: resolves correctly") {
+    var s = NamespaceStack.new()
+    s.push()
+    Assert.aborts { s.getValue("b") }
+    s.setPrefixValue("b", "blue")
+    Assert.equal(s.getValue("b"), "blue")
+    Assert.equal(s.getPrefix("blue"), "b")
+    s.push()
+    Assert.equal(s.getValue("b"), "blue")
+    Assert.equal(s.getPrefix("blue"), "b")
+    s.setPrefixValue("b", "notBlue")
+    Assert.equal(s.getValue("b"), "notBlue")
+    Assert.equal(s.getPrefix("notBlue"), "b")
+    Assert.aborts { s.getValue("a") }
+    s.setPrefixValue(null, "hellothere")
+    Assert.equal(s.getValue(null), "hellothere")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// TEST UTILITIES //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("XName: builds name correctly") {
+    var name = XName.build("blue", "bird")
+    Assert.equal(name, "{blue}bird")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("XName: splits name correctly") {
+    var name = null
+
+    name = XName.split("{blue}bird")
+    Assert.typeOf(name, XName)
+    Assert.equal(name.namespace, "blue")
+    Assert.equal(name.localName, "bird")
+
+    name = XName.split("bird")
+    Assert.typeOf(name, XName)
+    Assert.equal(name.namespace, null)
+    Assert.equal(name.localName, "bird")
+
+    name = XName.splitFast("{blue}bird")
+    Assert.typeOf(name, XName)
+    Assert.equal(name.namespace, "blue")
+    Assert.equal(name.localName, "bird")
+
+    name = XName.splitFast("bird")
+    Assert.notExists(name)
+
+    name = XName.splitPrefixFast("b:bird")
+    Assert.typeOf(name, XName)
+    Assert.equal(name.namespace, "b")
+    Assert.equal(name.localName, "bird")
+
+    name = XName.splitPrefixFast("bird")
+    Assert.notExists(name)
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // TEST SYNTAX /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -96,6 +159,8 @@ Test.run("Attribute: Set value converted to string") {
     Assert.equal(a.value, "4")
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Set value converted to string") {
     var e = XElement.new("name", 69)
     Assert.equal(e.value, "69")
@@ -103,12 +168,16 @@ Test.run("Element: Set value converted to string") {
     Assert.equal(e.value, "2")
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Comment: Set value converted to string") {
     var c = XComment.new(69)
     Assert.equal(c.value, "69")
     c.value = 0
     Assert.equal(c.value, "0")
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Element: Add element") {
     var parent = XElement.new("parent")
@@ -119,6 +188,8 @@ Test.run("Element: Add element") {
     Assert.equal(c, child)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Add comment") {
     var parent = XElement.new("parent")
     var child = XComment.new("child")
@@ -127,6 +198,8 @@ Test.run("Element: Add comment") {
     var c = parent.nodes[0]
     Assert.equal(c, child)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Element: Add attribute") {
     var parent = XElement.new("parent")
@@ -137,6 +210,8 @@ Test.run("Element: Add attribute") {
     Assert.equal(c, child)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Duplicate attributes should abort fiber") {
     var parent = XElement.new("parent")
     var child1 = XAttribute.new("child", "attribute content")
@@ -145,15 +220,21 @@ Test.run("Element: Duplicate attributes should abort fiber") {
     Assert.aborts(Fn.new { parent.add(child2) })
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Add string aborts fiber") {
     var element = XElement.new("name")
     Assert.aborts(Fn.new { element.add("string value") })
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Document: Add string aborts fiber") {
     var doc = XDocument.new()
     Assert.aborts(Fn.new { doc.add("string value") })
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Element: Add sequence") {
     var parent = XElement.new("parent")
@@ -168,6 +249,8 @@ Test.run("Element: Add sequence") {
     Assert.equal(cElem, childElement)
     Assert.equal(cAttr, childAttribute)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Element: Constructor syntax without square brackets") {
     var expected = 
@@ -203,17 +286,23 @@ Test.run("Element: Constructor syntax without square brackets") {
     AssertCustom.elementIdentical(actual, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Construct with string value and attribute") {
     var e1 = XElement.new("name", XAttribute.new("name", "attrValue"), "elementValue")
     Assert.equal(e1.value, "elementValue")
     Assert.countOf(e1.attributes, 1)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Construct with non-string value and attribute") {
     var e2 = XElement.new("name", XAttribute.new("name", "attrValue"), 2)
     Assert.equal(e2.value, "2")
     Assert.countOf(e2.attributes, 1)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Document: Add element") {
     var parent = XDocument.new()
@@ -224,6 +313,8 @@ Test.run("Document: Add element") {
     Assert.equal(c, child)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Document: Add comment") {
     var parent = XDocument.new()
     var child = XComment.new("child")
@@ -232,6 +323,8 @@ Test.run("Document: Add comment") {
     var c = parent.nodes[0]
     Assert.equal(c, child)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Document: Add sequence") {
     var parent = XDocument.new()
@@ -247,6 +340,8 @@ Test.run("Document: Add sequence") {
     Assert.equal(cElem, childElement)
     Assert.equal(cComm, childComment)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Document: Constructor syntax without square brackets") {
     var expected = 
@@ -283,6 +378,8 @@ Test.run("Stringify attribute") {
     Assert.equal(actual, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Stringify element") {
     var element = 
         XElement.new("fishies", [
@@ -294,7 +391,8 @@ Test.run("Stringify element") {
             XComment.new("TheComment"),
             XElement.new("danio", [
                 XAttribute.new("name", "pea<rl"),
-                XAttribute.new("color", "pink")
+                XAttribute.new("color", "pink"),
+                XElement.new("danio")
             ]),
             XElement.new("danio", "val>ue")
         ])
@@ -303,7 +401,9 @@ Test.run("Stringify element") {
 <fishies amount="2">
   <danio name="zebra" color="red"/>
   <!--TheComment-->
-  <danio name="pea&lt;rl" color="pink"/>
+  <danio name="pea&lt;rl" color="pink">
+    <danio/>
+  </danio>
   <danio>val&gt;ue</danio>
 </fishies>
 """.trim().replace("\r\n", "\n")
@@ -311,6 +411,8 @@ Test.run("Stringify element") {
     var actual = element.toString
     Assert.equal(actual, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Stringify document") {
     var doc = XDocument.new(
@@ -331,6 +433,8 @@ Test.run("Stringify document") {
 
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Stringify comment") {
     var comment = XComment.new("hell&o")
     var actual = comment.toString
@@ -338,10 +442,135 @@ Test.run("Stringify comment") {
     Assert.equal(actual, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Stringify comment with escape") {
     var comment = XComment.new("hello<!---->")
     var actual = comment.toString
     var expected = "<!--hello<!- - - - >-->"
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// TEST STRINGIFY WITH NAMESPACES //////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify attribute with namespace") {
+    var attribute = XAttribute.new("{ocean}fish", "swim")
+    var ns = NamespaceStack.new()
+    ns.push()
+    ns.setPrefixValue("o", "ocean")
+    var actual = ""
+    var writer = XWriter.new(ns) {|x| actual = actual + x }
+    writer.writeAttribute(attribute)
+    var expected = "o:fish=\"swim\""
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify single element with attribute namespace") {
+    var element = 
+        XElement.new("danio", [
+                XAttribute.new(XName.build("https://www.fish.com", "name"), "zebra"),
+                XAttribute.xmlns("fish", "https://www.fish.com")
+            ])
+
+    var expected = """
+<danio fish:name="zebra" xmlns:fish="https://www.fish.com"/>
+""".trim().replace("\r\n", "\n")
+
+    var actual = element.toString
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify single element with element namespace and closing tag") {
+    var element = 
+        XElement.new(XName.build("https://www.fish.com", "danio"), [
+                XAttribute.new("name", "zebra"),
+                XAttribute.xmlns("fish", "https://www.fish.com"),
+                "fishy wishy"
+            ])
+
+    var expected = """
+<fish:danio name="zebra" xmlns:fish="https://www.fish.com">fishy wishy</fish:danio>
+""".trim().replace("\r\n", "\n")
+
+    var actual = element.toString
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify single element with default element namespace") {
+    var element = 
+        XElement.new(XName.build("https://www.fish.com", "danio"), [
+                XAttribute.new("name", "zebra"),
+                XAttribute.xmlns("https://www.fish.com")
+            ])
+
+    var expected = """
+<danio name="zebra" xmlns="https://www.fish.com"/>
+""".trim().replace("\r\n", "\n")
+
+    var actual = element.toString
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify advanced namespace element") {
+    var w = "{http://schemas.microsoft.com/winfx/2006/xaml/presentation}"
+    var x = "{http://schemas.microsoft.com/winfx/2006/xaml}"
+    var controls = "{clr-namespace:RanseiLink.Controls}"
+    var element = 
+        XElement.new(w + "UserControl",
+            XAttribute.new(x + "Class", "RanseiLink.Controls.ModInfoControl"),
+            XAttribute.xmlns("http://schemas.microsoft.com/winfx/2006/xaml/presentation"),
+            XAttribute.xmlns("x", "http://schemas.microsoft.com/winfx/2006/xaml"),
+            XAttribute.xmlns("controls", "clr-namespace:RanseiLink.Controls"),
+            XElement.new(w + "StackPanel",
+                XElement.new(w + "TextBlock", XAttribute.new(x + "Name", "NameTextBlock"), XAttribute.new("Text", "Mod Name")),
+                XElement.new(controls + "ModInfoControl", XAttribute.new("ModInfo", "{Binding Mod}"))
+            )
+        )
+
+    var expected = """
+<UserControl x:Class="RanseiLink.Controls.ModInfoControl" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:RanseiLink.Controls">
+  <StackPanel>
+    <TextBlock x:Name="NameTextBlock" Text="Mod Name"/>
+    <controls:ModInfoControl ModInfo="{Binding Mod}"/>
+  </StackPanel>
+</UserControl>
+""".trim().replace("\r\n", "\n")
+
+    var actual = element.toString
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify single element attribue uses explicit namespace") {
+    var ns = "https://www.fish.com"
+    var nw = "{https://www.fish.com}"
+    var element = 
+        XElement.new("fishies",
+            XAttribute.xmlns("fish", ns),
+            XElement.new(nw + "danio",
+                XAttribute.new(nw + "name", "zebra"),
+                XAttribute.xmlns(ns)
+            )
+        )
+
+    var expected = """
+<fishies xmlns:fish="https://www.fish.com">
+  <danio fish:name="zebra" xmlns="https://www.fish.com"/>
+</fishies>
+""".trim().replace("\r\n", "\n")
+
+    var actual = element.toString
     Assert.equal(actual, expected)
 }
 
@@ -357,12 +586,16 @@ Test.run("Parse attribute") {
     AssertCustom.attributeIdentical(attribute, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse attribute shortcut") {
     var attributeString = "attrName=\"the attribute value\""
     var attribute = XAttribute.parse(attributeString)
     var expected = XAttribute.new("attrName", "the attribute value")
     AssertCustom.attributeIdentical(attribute, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse attribute apostrophe") {
     var attributeString = "attrName='the attribute value'"
@@ -371,6 +604,8 @@ Test.run("Parse attribute apostrophe") {
     var expected = XAttribute.new("attrName", "the attribute value")
     AssertCustom.attributeIdentical(attribute, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 var escapeTestCases = [
     ["&amp;", "&"],
@@ -391,6 +626,8 @@ for (case in escapeTestCases) {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse attribute with escape") {
     var attributeString = "attrName=\"&lt;the attribute&amp; value &gt;&gt;\""
     var parser = XParser.new(attributeString)
@@ -398,6 +635,8 @@ Test.run("Parse attribute with escape") {
     var expected = XAttribute.new("attrName", "<the attribute& value >>")
     AssertCustom.attributeIdentical(attribute, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse element no-content no attributes") {
     var elementString = "<Elem/>"
@@ -407,12 +646,16 @@ Test.run("Parse element no-content no attributes") {
     AssertCustom.elementIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse element no-content no attributes shortcut") {
     var elementString = "<Elem/>"
     var result = XElement.parse(elementString)
     var expected = XElement.new("Elem")
     AssertCustom.elementIdentical(result, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse element no-content one attribute") {
     var elementString = "<Elem attr=\"val\"/>"
@@ -422,6 +665,8 @@ Test.run("Parse element no-content one attribute") {
     AssertCustom.elementIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse element no-content two attributes") {
     var elementString = "<Elem attr=\"val\" another=\"anotherval\" />"
     var parser = XParser.new(elementString)
@@ -429,6 +674,8 @@ Test.run("Parse element no-content two attributes") {
     var expected = XElement.new("Elem", [XAttribute.new("attr", "val"), XAttribute.new("another", "anotherval")])
     AssertCustom.elementIdentical(result, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse element empty-content no attributes") {
     var elementString = "<Elem></Elem>"
@@ -438,6 +685,8 @@ Test.run("Parse element empty-content no attributes") {
     AssertCustom.elementIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse element empty-content one attribute") {
     var elementString = "<Elem attr=\"val\"></Elem>"
     var parser = XParser.new(elementString)
@@ -445,6 +694,8 @@ Test.run("Parse element empty-content one attribute") {
     var expected = XElement.new("Elem", [XAttribute.new("attr", "val")])
     AssertCustom.elementIdentical(result, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse element with text content") {
     var elementString = "<Elem>hello</Elem>"
@@ -454,6 +705,8 @@ Test.run("Parse element with text content") {
     AssertCustom.elementIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse element with text content with surrounding whitespace") {
     var elementString = "<Elem> hello  </Elem>"
     var parser = XParser.new(elementString)
@@ -461,6 +714,8 @@ Test.run("Parse element with text content with surrounding whitespace") {
     var expected = XElement.new("Elem", " hello  ")
     AssertCustom.elementIdentical(result, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse element with single element content") {
     var elementString = "<Elem><Child/></Elem>"
@@ -470,6 +725,8 @@ Test.run("Parse element with single element content") {
     AssertCustom.elementIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse element with single element content with surrounding whitespace") {
     var elementString = "<Elem>\n  <Child/>\n</Elem>"
     var parser = XParser.new(elementString)
@@ -478,6 +735,8 @@ Test.run("Parse element with single element content with surrounding whitespace"
     AssertCustom.elementIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse element with multiple elements") {
     var elementString = "<Elem>\n  <Child1/>\n  <Child2/>\n</Elem>"
     var parser = XParser.new(elementString)
@@ -485,6 +744,8 @@ Test.run("Parse element with multiple elements") {
     var expected = XElement.new("Elem", [XElement.new("Child1"), XElement.new("Child2")])
     AssertCustom.elementIdentical(result, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse element with multiple single nested") {
     var elementString = """<Elem>
@@ -507,6 +768,8 @@ Test.run("Parse element with multiple single nested") {
     AssertCustom.elementIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse element with comments") {
     var elementString = """<Elem>
                              <!-- Comment -->
@@ -523,6 +786,8 @@ Test.run("Parse element with comments") {
         )
     AssertCustom.elementIdentical(result, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse document") {
     var documentString = """
@@ -542,6 +807,8 @@ Test.run("Parse document") {
     AssertCustom.documentIdentical(result, expected)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse document shortcut") {
     var documentString = """
 <?xml version="1.0" encoding="utf-8"?>
@@ -558,6 +825,8 @@ Test.run("Parse document shortcut") {
 
     AssertCustom.documentIdentical(result, expected)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse document with comments") {
     var documentString = """
