@@ -1000,6 +1000,13 @@ class XContainer is XObject {
         return null
     }
 
+    #doc = "Gets the String value of the first element of this name. Since an element's value is never null, this will only be null if the element is not found."
+    #arg(name=name)
+    elementValue(name) {
+        var e = element(name)
+        return e != null ? e.value : null
+    }
+
     #doc = "Sequence of the child nodes"
     nodes { _nodes }
 
@@ -1171,6 +1178,13 @@ class XElement is XContainer {
         } else if (child is XComment || child is XElement) {
             nodes.remove(child)
         }
+    }
+
+    #doc = "Gets the String value of the attribute of this name. Since an attribute's value is never null, this will only be null if the attribute is not found."
+    #arg(name=name)
+    attributeValue(name) {
+        var attr = attribute(name)
+        return attr != null ? attr.value : null
     }
 
     #doc = "Sets value of existing attribute, or creates new attribute. null value removes the attribute"

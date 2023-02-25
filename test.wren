@@ -789,6 +789,18 @@ Test.run("Parse element with comments") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+Test.run("Parse element with escape value") {
+    var elementString = """<description>Sky watchers in Europe, Asia, and parts of Alaska and Canada will experience a &lt;a href="http://science.nasa.gov/headlines/y2003/30may_solareclipse.htm"&gt;partial eclipse of the Sun&lt;/a&gt; on Saturday, May 31st.</description>"""
+    var parser = XParser.new(elementString)
+    var result = parser.parseElement()
+    var expected = XElement.new("description", 
+        """Sky watchers in Europe, Asia, and parts of Alaska and Canada will experience a <a href="http://science.nasa.gov/headlines/y2003/30may_solareclipse.htm">partial eclipse of the Sun</a> on Saturday, May 31st."""
+        )
+    AssertCustom.elementIdentical(result, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Parse document") {
     var documentString = """
 <?xml version="1.0" encoding="utf-8"?>
