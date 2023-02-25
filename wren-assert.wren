@@ -125,7 +125,7 @@ class Assert {
    * Assert that the given object matches the given type.
    */
   static typeOf(object, type) {
-    typeOf(object, type, "Expected %(object) to be of type %(type)")
+    typeOf(object, type, "Expected object to be of type %(type), but found %(object == null ? "Null" : object.type)")
   }
 
   /**
@@ -141,7 +141,7 @@ class Assert {
    * Assert that the given object doesn't match the given type.
    */
   static notTypeOf(object, type) {
-    notTypeOf(object, type, "Expected %(object) to not be of type %(type)")
+    notTypeOf(object, type, "Expected object to not be of type %(type), but found %(object == null ? "Null" : object.type)")
   }
 
   /**

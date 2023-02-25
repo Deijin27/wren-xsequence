@@ -552,7 +552,7 @@ Test.run("Stringify advanced namespace element") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Stringify single element attribue uses explicit namespace") {
+Test.run("Stringify single element attribute uses explicit namespace") {
     var ns = "https://www.fish.com"
     var nw = "{https://www.fish.com}"
     var element = 
@@ -842,6 +842,108 @@ Test.run("Parse document with comments") {
             XAttribute.new("attribute", "of root")
         )
     )
+
+    var parser = XParser.new(documentString)
+    var result = parser.parseDocument()
+
+    AssertCustom.documentIdentical(result, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// TEST PARSING WITH NAMESPACES ////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Parse single element with attribute namespace") {
+    var elementString = "<Elem b:attr=\"val\" xmlns:b=\"bird\"/>"
+    var parser = XParser.new(elementString)
+    var result = parser.parseElement()
+    var expected = XElement.new("Elem", 
+        XAttribute.new("{bird}attr", "val"),
+        XAttribute.xmlns("b", "bird")
+        )
+    AssertCustom.elementIdentical(result, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Parse single element with explicit element namespace") {
+    var elementString = "<b:Elem attr=\"val\" xmlns:b=\"bird\"/>"
+    var parser = XParser.new(elementString)
+    var result = parser.parseElement()
+    var expected = XElement.new("{bird}Elem", 
+        XAttribute.new("attr", "val"),
+        XAttribute.xmlns("b", "bird")
+        )
+    AssertCustom.elementIdentical(result, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Parse single element with implicit element namespace") {
+    var elementString = "<Elem attr=\"val\" xmlns=\"bird\"/>"
+    var parser = XParser.new(elementString)
+    var result = parser.parseElement()
+    var expected = XElement.new("{bird}Elem", 
+        XAttribute.new("attr", "val"),
+        XAttribute.xmlns("bird")
+        )
+    AssertCustom.elementIdentical(result, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Parse advanced namespace element") {
+    var w = "{http://schemas.microsoft.com/winfx/2006/xaml/presentation}"
+    var x = "{http://schemas.microsoft.com/winfx/2006/xaml}"
+    var controls = "{clr-namespace:RanseiLink.Controls}"
+    var expected = XDocument.new(
+        XElement.new(w + "UserControl",
+            XAttribute.new(x + "Class", "RanseiLink.Controls.ModInfoControl"),
+            XAttribute.xmlns("http://schemas.microsoft.com/winfx/2006/xaml/presentation"),
+            XAttribute.xmlns("x", "http://schemas.microsoft.com/winfx/2006/xaml"),
+            XAttribute.xmlns("controls", "clr-namespace:RanseiLink.Controls"),
+            XElement.new(w + "StackPanel",
+                XElement.new(w + "TextBlock", XAttribute.new(x + "Name", "NameTextBlock"), XAttribute.new("Text", "Mod Name")),
+                XElement.new(controls + "ModInfoControl", XAttribute.new("ModInfo", "{Binding Mod}"))
+            )
+        )
+    )
+
+    var documentString = """
+<UserControl x:Class="RanseiLink.Controls.ModInfoControl" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:RanseiLink.Controls">
+  <StackPanel>
+    <TextBlock x:Name="NameTextBlock" Text="Mod Name"/>
+    <controls:ModInfoControl ModInfo="{Binding Mod}"/>
+  </StackPanel>
+</UserControl>
+"""
+
+    var parser = XParser.new(documentString)
+    var result = parser.parseDocument()
+
+    AssertCustom.documentIdentical(result, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Parse namespace priority is respected") {
+    var expected = XDocument.new(
+        XElement.new("{https://www.shark.com}fishies",
+            XAttribute.xmlns("https://www.shark.com"),
+            XAttribute.xmlns("r", "bunny"),
+            XElement.new("{https://www.fish.com}danio",
+                XAttribute.new("{rabbit}name", "zebra"),
+                XAttribute.xmlns("https://www.fish.com"),
+                XAttribute.xmlns("r", "rabbit")
+            )
+        )
+    )
+
+    var documentString = """
+<fishies xmlns="https://www.shark.com" xmlns:r="bunny">
+  <danio r:name="zebra" xmlns="https://www.fish.com" xmlns:r="rabbit"/>
+</fishies>
+"""
 
     var parser = XParser.new(documentString)
     var result = parser.parseDocument()

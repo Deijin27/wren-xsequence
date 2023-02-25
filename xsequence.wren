@@ -46,6 +46,16 @@ class NamespaceStack {
         Fiber.abort("Use of undefined namespace prefix '%(prefix)'")
     }
 
+    tryGetValue(prefix) {
+        for (i in _current..0) {
+            var value = _stack[i][prefix]
+            if (value != null) {
+                return value
+            }
+        }
+        return null
+    }
+
     getPrefix(value) {
         for (i in _current..0) {
             var dict = _stack[i]
@@ -653,6 +663,12 @@ class XParser {
             } else {
                 element.name = elementNameSplit.localName
             }
+        } else {
+            // if no prefix, and a default namespace is defined, apply that
+            var defaultNs = _namespaceStack.tryGetValue(null)
+            if (defaultNs != null) {
+                element.name = "{%(defaultNs)}%(element.name)"
+            }
         }
 
         // apply namespaces to attributes
@@ -906,6 +922,13 @@ class XAttribute is XObject {
 
     #doc = "Get the name of this attribute. The name cannot be changed"
     name { _name }
+
+    #doc = "Set the name of this attribute. This must be a string."
+    #arg(name=value)
+    name=(value) {
+        if (!(value is String)) Fiber.abort("Element name must be string")
+        _name = value
+    }
 
     #doc = "Get the string value of the attribute"
     value { _value }
