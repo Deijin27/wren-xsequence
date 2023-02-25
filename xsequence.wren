@@ -192,12 +192,7 @@ class XWriter {
     writeAttribute(attribute) {
         var value = XWriter.escape(attribute.value)
         // handle namespace
-        var name = attribute.name
-        var split = XName.splitFast(attribute.name)
-        if (split != null) {
-            var prefix = _namespaceStack.getNonDefaultPrefix(split.namespace)
-            name = "%(prefix):%(split.localName)"
-        }
+        var name = resolveAttributeName(attribute)
         _writerCallable.call("%(name)=\"%(value)\"")
     }
 
@@ -215,14 +210,16 @@ class XWriter {
         }
     }
 
-    writeElement(element, indent) {
-        // begin a new namespace scope for each element
-        _namespaceStack.push()
+    resolveAttributeName(attribute) {
+        var name = attribute.name
+        var split = XName.splitFast(attribute.name)
+        if (split != null) {
+            var prefix = _namespaceStack.getNonDefaultPrefix(split.namespace)
+            name = "%(prefix):%(split.localName)"
+        }
+    }
 
-        // load namespaces from attributes
-        loadNamespacesFromAttributes(element)
-
-        // get the element's name, applying namespace prefix if necessary
+    resolveElementName(element) {
         var name = element.name
         var elementNameSplit = XName.splitFast(element.name)
         if (elementNameSplit != null) {
@@ -235,6 +232,18 @@ class XWriter {
                 name = elementNameSplit.localName
             }
         }
+        return name
+    }
+
+    writeElement(element, indent) {
+        // begin a new namespace scope for each element
+        _namespaceStack.push()
+
+        // load namespaces from attributes
+        loadNamespacesFromAttributes(element)
+
+        // get the element's name, applying namespace prefix if necessary
+        var name = resolveElementName(element)
 
         // write element opening tag
         _writerCallable.call("<%(name)")
