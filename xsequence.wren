@@ -217,6 +217,7 @@ class XWriter {
             var prefix = _namespaceStack.getNonDefaultPrefix(split.namespace)
             name = "%(prefix):%(split.localName)"
         }
+        return name
     }
 
     resolveElementName(element) {
