@@ -4,7 +4,7 @@ Xml parser/writer for [Wren](https://wren.io/)
 
 Api similar to [C#'s XLinq](https://docs.microsoft.com/en-us/dotnet/standard/linq/linq-xml-overview)
 
-To use, take the single file `xsequence.wren` and put it into your project
+To use, download the [latest release](https://github.com/Deijin27/wren-xsequence/releases/latest) and take the single file `xsequence.wren` and put it into your project
 
 [Documentation](https://github.com/Deijin27/wren-xsequence/blob/master/docs.md)
 
@@ -79,6 +79,15 @@ var colorOfFishCalledPearl = doc
     .value
 ```
 
+The library also supports namespaces like so
+
+```wren
+var element = XElement.parse("<p:svg xmlns:p='http://www.w3.org/2000/svg'")
+// will load into an element identical to
+element = XElement.new("{http://www.w3.org/2000/svg}svg", XAttribute.xmlns("p", "http://www.w3.org/2000/svg"))
+// the namespace prefix is replaced with the value itself delimited by curly braces
+```
+
 ## Testing
 
 Using [wren-assert](https://github.com/RobLoach/wren-assert) for generic assertions.
@@ -92,7 +101,3 @@ To run tests use [wren cli](https://github.com/wren-lang/wren-cli)
 If you're using vscode you can use the automated task
 
 The exceptions are caught by default, which loses the call stack. To view the callstack set at the start of the file the global variable `DEBUG=true`
-
-## Limitations
-
-- Does not support namespaces. "ns:name" is read as a single string, "xmlns" is interpreted as a normal attribute. See plans in [#9](https://github.com/Deijin27/wren-xsequence/issues/9)
