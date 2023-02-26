@@ -9,9 +9,11 @@
 
  */
 
-#doc = "A utility class for working with XML namespaces"
- class XNamespace {
+#doc = "A utility class for working with XML namespaces. You will probably never need this"
+class XNamespace {
+    #doc = "The xmlns namespace value 'https://www.w3.org/2000/xmlns/'. It's easier to use XAttribute.xmlns"
     static xmlns { "https://www.w3.org/2000/xmlns/" }
+    #doc = "The xml namespace value 'http://www.w3.org/XML/1998/namespace'. It's easier to use XAttribute.xml"
     static xml { "http://www.w3.org/XML/1998/namespace" }
 }
 
@@ -746,8 +748,8 @@ class XParser {
             } else {
                 // simple character
                 value = value + String.fromCodePoint(p)
+                advance()
             }
-            advance()
         }
         return value
     }
@@ -908,16 +910,24 @@ class XAttribute is XObject {
         this.value = value
     }
 
+    #doc = "Create a new attribute defining the default namespace xmlns='value'"
+    #arg(name=value)
     static xmlns(value) {
         return XAttribute.new("xmlns", value)
     }
 
-    static xmlns(localName, value) {
-        return XAttribute.new("{%(XNamespace.xmlns)}%(localName)", value)
+    #doc = "Create a new attribute defining an namespace xmlns:prefix='value'"
+    #arg(name=prefix)
+    #arg(name=value)
+    static xmlns(prefix, value) {
+        return XAttribute.new("{%(XNamespace.xmlns)}%(prefix)", value)
     }
 
-    static xml(localName, value) {
-        return XAttribute.new("{%(XNamespace.xml)}%(localName)", value)
+    #doc = "Create a new attribute with the xml prefix xml:prefix='value'"
+    #arg(name=prefix)
+    #arg(name=value)
+    static xml(prefix, value) {
+        return XAttribute.new("{%(XNamespace.xml)}%(prefix)", value)
     }
 
     #doc = "Get the name of this attribute. The name cannot be changed"

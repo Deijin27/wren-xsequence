@@ -27,6 +27,7 @@ code = code
 Meta.eval(code)
 
 var moduleVariables = Meta.getModuleVariables("./generate_docs")
+moduleVariables.sort {|a, b| a.codePoints[1] < b.codePoints[1] }
 
 for (variable in moduleVariables) {
   if (variable == "Object metaclass") {

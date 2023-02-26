@@ -1,8 +1,10 @@
 /*
 
-This is a full parser for the base RSS format.
+This is an example of a parser for RSS format 2.0
 
 Based on the spec detailed here: https://validator.w3.org/feed/docs/rss2.html
+
+This code is licenced under MIT
 
 */
 

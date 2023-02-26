@@ -943,6 +943,7 @@ Test.run("Parse namespace priority is respected") {
         XElement.new("{https://www.shark.com}fishies",
             XAttribute.xmlns("https://www.shark.com"),
             XAttribute.xmlns("r", "bunny"),
+            XAttribute.new("{bunny}names", "zebras"),
             XElement.new("{https://www.fish.com}danio",
                 XAttribute.new("{rabbit}name", "zebra"),
                 XAttribute.xmlns("https://www.fish.com"),
@@ -952,7 +953,7 @@ Test.run("Parse namespace priority is respected") {
     )
 
     var documentString = """
-<fishies xmlns="https://www.shark.com" xmlns:r="bunny">
+<fishies xmlns="https://www.shark.com" xmlns:r="bunny" r:names="zebras">
   <danio r:name="zebra" xmlns="https://www.fish.com" xmlns:r="rabbit"/>
 </fishies>
 """
