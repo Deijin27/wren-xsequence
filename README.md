@@ -82,7 +82,7 @@ var colorOfFishCalledPearl = doc
 The library also supports namespaces like so
 
 ```wren
-var element = XElement.parse("<p:svg xmlns:p='http://www.w3.org/2000/svg'")
+var element = XElement.parse("<p:svg xmlns:p='http://www.w3.org/2000/svg'/>")
 // will load into an element identical to
 element = XElement.new("{http://www.w3.org/2000/svg}svg", XAttribute.xmlns("p", "http://www.w3.org/2000/svg"))
 // the namespace prefix is replaced with the value itself delimited by curly braces
