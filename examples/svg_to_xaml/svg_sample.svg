@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="svg85"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="RanseiLinkIcons-Randomize.svg"
+   x="0px"
+   y="0px"
+   viewBox="0 0 132.5 132.5"
+   style="enable-background:new 0 0 132.5 132.5;"
+   xml:space="preserve"><metadata
+   id="metadata9"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
+   id="defs7" />
+<style
+   type="text/css"
+   id="style2">
+	.st0{fill:#AA87DE;}
+</style>
+<sodipodi:namedview
+   bordercolor="#666666"
+   borderopacity="1"
+   gridtolerance="10"
+   guidetolerance="10"
+   id="namedview87"
+   inkscape:bbox-paths="false"
+   inkscape:current-layer="svg85"
+   inkscape:cx="61.764678"
+   inkscape:cy="57.223965"
+   inkscape:document-rotation="0"
+   inkscape:object-paths="true"
+   inkscape:pageopacity="0"
+   inkscape:pageshadow="2"
+   inkscape:snap-bbox="false"
+   inkscape:snap-global="true"
+   inkscape:snap-intersection-paths="true"
+   inkscape:snap-midpoints="true"
+   inkscape:window-height="992"
+   inkscape:window-maximized="1"
+   inkscape:window-width="1920"
+   inkscape:window-x="-8"
+   inkscape:window-y="-8"
+   inkscape:zoom="3.6175844"
+   objecttolerance="10"
+   pagecolor="#212121"
+   showgrid="false">
+	</sodipodi:namedview>
+<path
+   d="M 104.19922 35.599609 L 98.400391 41.300781 L 107.80078 50.699219 L 94.599609 50.699219 C 88.499609 50.699219 82.699609 53.199609 78.599609 57.599609 L 70.371094 66.384766 C 72.229267 68.360498 74.089873 70.334142 75.945312 72.3125 L 84.5 63.199219 C 87.1 60.399219 90.799609 58.800781 94.599609 58.800781 L 107.90039 58.800781 L 98.5 68.199219 L 104.30078 73.900391 L 123.5 54.800781 L 104.19922 35.599609 z M 8 49.599609 L 8 57.699219 L 31.699219 57.699219 C 38.799219 57.699219 45.6 60.600781 50.5 65.800781 L 78.599609 95.800781 C 82.699609 100.20078 88.499609 102.69922 94.599609 102.69922 L 107.80078 102.69922 L 98.400391 112.09961 L 104.19922 117.80078 L 123.5 98.599609 L 104.30078 79.5 L 98.5 85.199219 L 107.90039 94.599609 L 94.599609 94.599609 C 90.799609 94.599609 87.1 92.999219 84.5 90.199219 L 55.400391 59.199219 C 49.600391 53.099219 41.599219 49.599609 33.199219 49.599609 L 8 49.599609 z M 56.597656 81.089844 L 50.5 87.599609 C 45.6 92.799609 38.799219 95.699219 31.699219 95.699219 L 8 95.699219 L 8 103.80078 L 33.199219 103.80078 C 41.599219 103.80078 49.600391 100.29922 55.400391 94.199219 L 62.150391 87.009766 C 60.300205 85.035804 58.44614 83.065465 56.597656 81.089844 z "
+   style="fill:#aa87de"
+   id="polygon74" />
+</svg>

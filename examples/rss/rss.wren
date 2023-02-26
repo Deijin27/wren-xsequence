@@ -4,6 +4,8 @@ This is an example of a parser for RSS format 2.0
 
 Based on the spec detailed here: https://validator.w3.org/feed/docs/rss2.html
 
+The RSS format uses simple xml with no namespaces.
+
 This code is licenced under MIT
 
 */
