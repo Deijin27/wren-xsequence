@@ -530,11 +530,11 @@ class XParser {
             }
             var p = peek(2)
             if (p == Code.EXCLAMATION) {
-                doc.add(parseComment())
+                doc.addComment(parseComment())
             } else if (p == Code.QUESTION) {
                 parseDeclaration()
             } else {
-                doc.add(parseElement())
+                doc.addElement(parseElement())
             }
         }
         return doc
@@ -608,16 +608,7 @@ class XParser {
                 // parse element content
                 processElementNamespaces(element)
                 advance()
-                var content = parseElementContent()
-                if (content is String) {
-                    element.value = content
-                } else if (content is Sequence) {
-                    for (item in content) {
-                        element.add(item)
-                    }
-                } else {
-                    element.add(content)
-                }
+                parseElementContent(element)
                 // post-content closing tag
                 expect(Code.LESS_THAN)
                 expect(Code.SLASH)
@@ -635,7 +626,7 @@ class XParser {
                 unexpected(p)
             } else {
                 var attr = parseAttribute()
-                element.add(attr)
+                element.addAttribute(attr)
             }
         }
         
@@ -719,17 +710,17 @@ class XParser {
         return XAttribute.new(name, val)
     }
 
-    parseElementContent() {
+    parseElementContent(element) {
         // peek past whitespace
         var start = _cur
         skipOptionalWhitespace()
         if (peek() == Code.LESS_THAN && peek(2) != Code.SLASH) {
             // content is nodes
-            return parseElementContentNodes()
+            parseElementContentNodes(element)
         } else {
             // content is text
             _cur = start
-            return parseElementValue()
+            element.value = parseElementValue()
         }
     }
 
@@ -754,19 +745,19 @@ class XParser {
         return value
     }
 
-    parseElementContentNodes() {
-        var nodes = []
+    // "element" is the element to add the parsed nodes to
+    parseElementContentNodes(element) {
         while (true) {
             if (peek() != Code.LESS_THAN) {
                 unexpected(peek())
             }
             var p = peek(2)
             if (p == Code.EXCLAMATION) {
-                nodes.add(parseComment())
+                element.addComment(parseComment())
             } else if (p == Code.EOF) {
                 unexpected(p)
             } else {
-                nodes.add(parseElement())
+                element.addElement(parseElement())
             }
             skipOptionalWhitespace()
             if (peek() == Code.LESS_THAN && peek(2) == Code.SLASH) {
@@ -774,7 +765,6 @@ class XParser {
                 break
             }
         }
-        return nodes
     }
 
     parseAttributeValue() {
@@ -955,6 +945,14 @@ class XAttribute is XObject {
         }
     }
 
+    addTo(parent) {
+        parent.addAttribute(this)
+    }
+
+    removeFrom(parent) {
+        parent.removeAttribute(this)
+    }
+
 }
 
 #doc = "An XML comment"
@@ -989,6 +987,14 @@ class XComment is XObject {
         } else {
             _value = value.toString 
         }
+    }
+
+    addTo(parent) {
+        parent.addComment(this)
+    }
+
+    removeFrom(parent) {
+        parent.removeComment(this)
     }
 }
 
@@ -1030,6 +1036,29 @@ class XContainer is XObject {
     #doc = "Sequence of the child comments"
     comments { _nodes.where {|node| node is XComment }}
 
+    addElement(child) {
+        _nodes.add(child)
+    }
+
+    addComment(child) {
+        _nodes.add(child)
+    }
+
+    removeElement(child) {
+      _nodes.remove(child)
+    }
+
+    removeComment(child) {
+      _nodes.remove(child)
+    }
+
+    #doc = "Adds each of the elements in sequence to this"
+    #arg(name=sequence)
+    addAll(sequence) {
+      for (i in sequence) {
+        i.addTo(this)
+      }
+    }
 }
 
 #doc = "An XML element"
@@ -1053,25 +1082,15 @@ class XElement is XContainer {
         init_()
     }
 
-    init_(name, content) {
+    init_(name, sequence) {
         init_(name)
-        // be careful here, a String is a Sequence so this check must come before the Sequence one
-        if (content is String) {
-            value = content
-            return
-        } else if (content is Sequence) {
-            // Support setting value and attributes during construction
-            for (child in content) {
-                if (child is XObject) {
-                    addInternal_(child)
-                } else {
-                    value = child
-                }
+        // Support setting value and attributes during construction
+        for (child in sequence) {
+            if (child is XObject) {
+                child.addTo(this)
+            } else {
+                value = child
             }
-        } else if (content is XObject) {
-            addInternal_(content)
-        } else {
-            value = content
         }
     }
 
@@ -1090,7 +1109,22 @@ class XElement is XContainer {
     #arg(name=name)
     #arg(name=content)
     construct new(name, content) {
-        init_(name, content)
+        // be careful here, a String is a Sequence so this check must come before the Sequence one
+        if (content is String) {
+            init_(name)
+            value = content
+            return
+        }
+        if (content is Sequence) {
+            init_(name, content)
+            return
+        }
+        init_(name)
+        if (content is XObject) {
+            content.addTo(this)
+        } else {
+            value = content
+        }
     }
 
     // The following allows dropping the [] in most circumstances
@@ -1150,44 +1184,39 @@ class XElement is XContainer {
     #doc = "Sequence of the attributes of this element"
     attributes { _attributes }
 
-    // internal add that doesn't accept sequence
-    addInternal_(child) {
-        if (child is XAttribute) {
-            if (attribute(child.name) != null){
-                Fiber.abort("Duplicate XAttribute of name '%(child.name)'")
-            }
-            _attributes.add(child)
-
-        } else if (child is XComment || child is XElement) {
-            nodes.add(child)
-        } else {
-            Fiber.abort("Invalid child of XElement '%(child)'")
-        }
-    }
-
-    #doc = "Add a child node to the document. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
+    #doc = "Add a child node to the element. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
     #arg(name=child)
     add(child) {
-        if (child is String) {
-            // ensure more useful error if it's a string, which is a Sequence
-            Fiber.abort("Invalid child of XElement '%(child)'")
-        } else if (child is Sequence) {
-            for (i in child) {
-                addInternal_(i)
-            }
+        if (child is Sequence) {
+            addAll(child)
         } else {
-            addInternal_(child)
+            child.addTo(this)
         }
     }
 
     #doc = "Remove a child XAttribute or XElement"
     #arg(name=child)
     remove(child) {
-        if (child is XAttribute) {
-            _attributes.remove(child)
-        } else if (child is XComment || child is XElement) {
-            nodes.remove(child)
+        child.removeFrom(this)
+    }
+
+    addAttribute(child) {
+        if (attribute(child.name) != null){
+            Fiber.abort("Duplicate XAttribute of name '%(child.name)'")
         }
+        _attributes.add(child)
+    }
+
+    removeAttribute(child) {
+      _attributes.remove(child)
+    }
+
+    addTo(parent) {
+        parent.addElement(this)
+    }
+
+    removeFrom(parent) {
+        parent.removeElement(this)
     }
 
     #doc = "Gets the String value of the attribute of this name. Since an attribute's value is never null, this will only be null if the attribute is not found."
@@ -1236,16 +1265,17 @@ class XDocument is XContainer {
     #doc = "Creates a document with content. Content can be XElement, XComment, or Sequence of them"
     #arg(name=content)
     construct new(content) {
-        init_(content)
-    }
-
-    init_(content) {
         init_()
         if (content == null) {
             Fiber.abort("XDocument content cannot be null")
         } else {
             add(content)
         }
+    }
+
+    init_(sequence) {
+        init_()
+        addAll(sequence)
     }
 
     // The following allows dropping the [] in most circumstances
@@ -1277,38 +1307,27 @@ class XDocument is XContainer {
         return null
     }
 
-    // internal add that doesn't allow sequence
-    addInternal_(child) {
-        if (child is XComment) {
-            nodes.add(child)
-        } else if (child is XElement) {
-            if (root != null) {
-                Fiber.abort("Cannot add more than one XElement to document")
-            }
-            nodes.add(child)
-        } else {
-            Fiber.abort("Invalid child of XDocument '%(child)'")
-        }
-    }
-
     #doc = "Add a child node to the document. This can be an XComment or an XElement, or a Sequence of them."
     #arg(name=child)
     add(child) {
         if (child is Sequence) {
-            for (i in child) {
-                addInternal_(i)
-            }
+            addAll(child)
         } else {
-            addInternal_(child)
+            child.addTo(this)
         }
     }
 
     #doc = "Remove a child XComment or XElement"
     #arg(name=child)
     remove(child) {
-        if (child is XComment || child is XElement) {
-            nodes.remove(child)
-        }
+        child.removeFrom(this)
+    }
+
+    addElement(child) {
+      if (root != null) {
+          Fiber.abort("Cannot add more than one XElement to document")
+      }
+      super.addElement(child)
     }
 }
 
