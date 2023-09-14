@@ -607,6 +607,16 @@ Test.run("Parse attribute apostrophe") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+Test.run("Parse attribute extra spaces") {
+    var attributeString = "attrName = \"the attribute value\""
+    var parser = XParser.new(attributeString)
+    var attribute = parser.parseAttribute()
+    var expected = XAttribute.new("attrName", "the attribute value")
+    AssertCustom.attributeIdentical(attribute, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 var escapeTestCases = [
     ["&amp;", "&"],
     ["&quot;", "\""],

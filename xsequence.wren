@@ -697,14 +697,18 @@ class XParser {
             
             if (p == Code.EQUAL) {
                 break
-            } else if (p == Code.EOF || isWhitespace(p)) {
+            } else if (isWhitespace(p)) {
+                skipOptionalWhitespace()
+                expect(Code.EQUAL)
+                break
+            } else if (p == Code.EOF) {
                 unexpected(p)
             }
             name = name + String.fromCodePoint(p)
         }
 
         // at this point we are immediately after the equals sign
-
+        skipOptionalWhitespace()
         var val = parseAttributeValue()
 
         return XAttribute.new(name, val)
