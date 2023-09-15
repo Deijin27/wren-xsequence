@@ -1,8 +1,8 @@
 
-import "./xsequence" for XDocument, XElement, XAttribute, XComment, XParser, XWriter, XName, NamespaceStack
+import "./xsequence" for XDocument, XElement, XAttribute, XComment, XParser, XWriter, XName, NamespaceStack, XCData, XText
 import "./wren-assert" for Assert
 
-var DEBUG = false // set true to view the full callstack from a failed test
+var DEBUG = true // set true to view the full callstack from a failed test
 
 var PASSED_TEST_COUNT = 0
 var FAILED_TEST_COUNT = 0
@@ -12,6 +12,7 @@ class Test {
         if (DEBUG) {
             System.print("Running test '%(name)'")
             callable.call()
+            PASSED_TEST_COUNT = PASSED_TEST_COUNT + 1
             return
         }
         var testFiber = Fiber.new { callable.call() }
@@ -38,13 +39,12 @@ class AssertCustom {
         Assert.typeOf(actual, XElement)
         Assert.typeOf(expected, XElement)
         Assert.equal(actual.name, expected.name)
-        Assert.equal(actual.value, expected.value)
         Assert.countOf(actual.attributes, expected.attributes.count)
         for (i in 0...actual.attributes.count) {
             AssertCustom.attributeIdentical(actual.attributes[i], expected.attributes[i])
         }
         Assert.countOf(actual.nodes, expected.nodes.count)
-        for (i in 0...actual.elements.count) {
+        for (i in 0...actual.nodes.count) {
             AssertCustom.nodeIdentical(actual.nodes[i], expected.nodes[i])
         }
     }
@@ -53,7 +53,7 @@ class AssertCustom {
         Assert.typeOf(actual, XDocument)
         Assert.typeOf(expected, XDocument)
         Assert.countOf(actual.nodes, expected.nodes.count)
-        for (i in 0...actual.elements.count) {
+        for (i in 0...actual.nodes.count) {
             AssertCustom.nodeIdentical(actual.nodes[i], expected.nodes[i])
         }
     }
@@ -64,11 +64,27 @@ class AssertCustom {
         Assert.equal(actual.value, expected.value)
     }
 
+    static textIdentical(actual, expected) {
+        Assert.typeOf(actual, XText)
+        Assert.typeOf(expected, XText)
+        Assert.equal(actual.value, expected.value)
+    }
+
+    static cdataIdentical(actual, expected) {
+        Assert.typeOf(actual, XCData)
+        Assert.typeOf(expected, XCData)
+        Assert.equal(actual.value, expected.value)
+    }
+
     static nodeIdentical(actual, expected) {
         if (expected is XComment) {
             commentIdentical(actual, expected)
         } else if (expected is XElement) {
             elementIdentical(actual, expected)
+        } else if (expected is XCData) {
+            cdataIdentical(actual, expected)
+        } else if (expected is XText) {
+            textIdentical(actual, expected)
         } else {
             Fiber.abort("AssertCustom.nodeIdentical: Object is not an XElement or XComment")
         }
@@ -161,6 +177,24 @@ Test.run("Attribute: Set value converted to string") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+Test.run("XText: Set value converted to string") {
+    var c = XText.new(69)
+    Assert.equal(c.value, "69")
+    c.value = 0
+    Assert.equal(c.value, "0")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("XCData: Set value converted to string") {
+    var c = XCData.new(69)
+    Assert.equal(c.value, "69")
+    c.value = 0
+    Assert.equal(c.value, "0")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Set value converted to string") {
     var e = XElement.new("name", 69)
     Assert.equal(e.value, "69")
@@ -201,6 +235,50 @@ Test.run("Element: Add comment") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+Test.run("Element: Add XText") {
+    var parent = XElement.new("parent")
+    var child = XText.new("child")
+    parent.add(child)
+    Assert.countOf(parent.nodes, 1)
+    var c = parent.nodes[0]
+    Assert.equal(c, child)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: Add CData") {
+    var parent = XElement.new("parent")
+    var child = XCData.new("child")
+    parent.add(child)
+    Assert.countOf(parent.nodes, 1)
+    var c = parent.nodes[0]
+    Assert.equal(c, child)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: Add String") {
+    var parent = XElement.new("parent")
+    var child = "child"
+    parent.add(child)
+    Assert.countOf(parent.nodes, 1)
+    var c = parent.nodes[0]
+    Assert.typeOf(c, XText)
+    Assert.equal(c.value, child)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: Add multiple strings interpreted as one merged value") {
+    var parent = XElement.new("parent")
+    parent.add("String")
+    parent.add(XText.new("TextNode"))
+    parent.add(XCData.new("CDataNode"))
+    Assert.equal(parent.value, "StringTextNodeCDataNode")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Element: Add attribute") {
     var parent = XElement.new("parent")
     var child = XAttribute.new("child", "attribute content")
@@ -218,13 +296,6 @@ Test.run("Element: Duplicate attributes should abort fiber") {
     var child2 = XAttribute.new("child", "other attribute content")
     parent.add(child1)
     Assert.aborts(Fn.new { parent.add(child2) })
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-Test.run("Element: Add string aborts fiber") {
-    var element = XElement.new("name")
-    Assert.aborts(Fn.new { element.add("string value") })
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -380,6 +451,42 @@ Test.run("Stringify attribute") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+Test.run("Stringify comment") {
+    var comment = XComment.new("hell&o")
+    var actual = comment.toString
+    var expected = "<!--hell&o-->"
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify comment with escape") {
+    var comment = XComment.new("hello<!---->")
+    var actual = comment.toString
+    var expected = "<!--hello<!- - - - >-->"
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify xtext") {
+    var text = XText.new(" hel&lo\n")
+    var actual = text.toString
+    var expected = " hel&amp;lo\n"
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Stringify cdata") {
+    var cdata = XCData.new(" hel&lo<node></node>]]>\n")
+    var actual = cdata.toString
+    var expected = "<![CDATA[ hel&lo<node></node>] ]>\n]]>"
+    Assert.equal(actual, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 Test.run("Stringify element") {
     var element = 
         XElement.new("fishies", [
@@ -394,7 +501,8 @@ Test.run("Stringify element") {
                 XAttribute.new("color", "pink"),
                 XElement.new("danio")
             ]),
-            XElement.new("danio", "val>ue")
+            XElement.new("danio", "val>ue"),
+            XElement.new("danio", XCData.new("<fishyfish/>"))
         ])
 
     var expected = """
@@ -405,8 +513,25 @@ Test.run("Stringify element") {
     <danio/>
   </danio>
   <danio>val&gt;ue</danio>
+  <danio><![CDATA[<fishyfish/>]]></danio>
 </fishies>
 """.trim().replace("\r\n", "\n")
+
+    var actual = element.toString
+    Assert.equal(actual, expected)
+}
+
+Test.run("Stringify element with mixed content") {
+    var element = 
+        XElement.new("fishies", [
+            "a danio ",
+            XElement.new("is"),
+            XText.new(" a fish "),
+            XAttribute.new("amount", 2),
+            XElement.new("which", XElement.new("swims")),
+        ])
+
+    var expected = """<fishies amount="2">a danio <is/> a fish <which><swims/></which></fishies>"""
 
     var actual = element.toString
     Assert.equal(actual, expected)
@@ -431,24 +556,6 @@ Test.run("Stringify document") {
     var actual = doc.toString
     Assert.equal(actual, expected)
 
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-Test.run("Stringify comment") {
-    var comment = XComment.new("hell&o")
-    var actual = comment.toString
-    var expected = "<!--hell&o-->"
-    Assert.equal(actual, expected)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-Test.run("Stringify comment with escape") {
-    var comment = XComment.new("hello<!---->")
-    var actual = comment.toString
-    var expected = "<!--hello<!- - - - >-->"
-    Assert.equal(actual, expected)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -644,6 +751,16 @@ Test.run("Parse attribute with escape") {
     var attribute = parser.parseAttribute()
     var expected = XAttribute.new("attrName", "<the attribute& value >>")
     AssertCustom.attributeIdentical(attribute, expected)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Parse cdata") {
+    var cdataString = "<![CDATA[some <stuff>]]>"
+    var parser = XParser.new(cdataString)
+    var result = parser.parseCData()
+    var expected = XCData.new("some <stuff>")
+    AssertCustom.cdataIdentical(result, expected)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

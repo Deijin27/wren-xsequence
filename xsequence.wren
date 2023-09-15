@@ -201,6 +201,18 @@ class XWriter {
         _writerCallable.call("-->")
     }
 
+    writeText(text) {
+        var value = XWriter.escape(text.value)
+        _writerCallable.call(value)
+    }
+
+    writeCData(cdata) {
+        _writerCallable.call("<![CDATA[")
+        // escape what could be misinterpreted as the closing tag
+        _writerCallable.call(cdata.value.replace("]]>", "] ]>"))
+        _writerCallable.call("]]>")
+    }
+
     writeAttribute(attribute) {
         var value = XWriter.escape(attribute.value)
         // handle namespace
@@ -268,24 +280,24 @@ class XWriter {
         }
 
         if (element.nodes.count > 0) {
-            // write element content nodes
-            var newIndent = indent + "  "
             _writerCallable.call(">")
-            for (node in element.nodes) {
-                _writerCallable.call("\n")
-                _writerCallable.call(newIndent)
-                if (node is XComment) {
-                    writeComment(node)
-                } else if (node is XElement) {
-                    writeElement(node, newIndent)
+            if (indent == null || element.nodes.any {|x| x is XText }) {
+                // because there are xtext nodes we cannot have fancy 
+                // whitespace because it's text / mixed content
+                for (node in element.nodes) {
+                    node.writeWith(this, null)
                 }
+                _writerCallable.call("</%(name)>")
+            } else {
+                // write content nodes that are not xtext
+                // here we can have fancy whitespace
+                var newIndent = indent + "  "
+                for (node in element.nodes) {
+                    _writerCallable.call("\n" + newIndent)
+                    node.writeWith(this, newIndent)
+                }
+                _writerCallable.call("\n%(indent)</%(name)>")
             }
-            _writerCallable.call("\n%(indent)</%(name)>")
-
-        } else if (element.value != null && element.value != "") {
-            // write non-empty element value and full closing tag
-            var elementVal = XWriter.escape(element.value)
-            _writerCallable.call(">%(elementVal)</%(name)>")
         } else {
             // element has no value, write short closing tag
             _writerCallable.call("/>")
@@ -297,13 +309,10 @@ class XWriter {
 
     writeDocument(document) {
         _writerCallable.call("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
+        var indent = ""
         for (node in document.nodes) {
             _writerCallable.call("\n")
-            if (node is XComment) {
-                writeComment(node)
-            } else if (node is XElement) {
-                writeElement(node)
-            }
+            node.writeWith(this, indent)
         }
     }
 }
@@ -564,6 +573,35 @@ class XParser {
         return XComment.new(value)
     }
 
+    parseCData() {
+        expect(Code.LESS_THAN)
+        expect(Code.EXCLAMATION)
+        expect(Code.LEFT_SQUARE)
+        expect(Code.C_UPPER)
+        expect(Code.D_UPPER)
+        expect(Code.A_UPPER)
+        expect(Code.T_UPPER)
+        expect(Code.A_UPPER)
+        expect(Code.LEFT_SQUARE)
+
+        var value = ""
+
+        while (true) {
+            var n = next()
+            if (n == Code.EOF) {
+                unexpected(Code.EOF)
+            } else if (n == Code.RIGHT_SQUARE && peek() == Code.RIGHT_SQUARE && peek(2) == Code.GREATER_THAN) {
+                advance()
+                advance()
+                break
+            } else {
+                value = value + String.fromCodePoint(n)
+            }
+        }
+
+        return XCData.new(value)
+    }
+
     parseDeclaration() {
         expect(Code.LESS_THAN)
         expect(Code.QUESTION)
@@ -608,7 +646,7 @@ class XParser {
                 // parse element content
                 processElementNamespaces(element)
                 advance()
-                parseElementContent(element)
+                parseElementContentNodes(element)
                 // post-content closing tag
                 expect(Code.LESS_THAN)
                 expect(Code.SLASH)
@@ -714,59 +752,67 @@ class XParser {
         return XAttribute.new(name, val)
     }
 
-    parseElementContent(element) {
-        // peek past whitespace
-        var start = _cur
-        skipOptionalWhitespace()
-        if (peek() == Code.LESS_THAN && peek(2) != Code.SLASH) {
-            // content is nodes
-            parseElementContentNodes(element)
-        } else {
-            // content is text
-            _cur = start
-            element.value = parseElementValue()
-        }
-    }
-
-    parseElementValue() {
+    // parse an XText
+    parseText() {
         var value = ""
         while (true) {
             var p = peek()
             if (p == Code.LESS_THAN) {
-                // begin of closing tag, element value complete
+                // begin of node tag, xtext complete
                 break
             } else if (p == Code.AMPERSAND) {
                 // escape sequence
                 value = value + parseEscapeSequence()
             } else if (p == Code.EOF) {
-                unexpected(c)
+                unexpected(p)
             } else {
                 // simple character
                 value = value + String.fromCodePoint(p)
                 advance()
             }
         }
-        return value
+        return XText.new(value)
     }
 
     // "element" is the element to add the parsed nodes to
     parseElementContentNodes(element) {
         while (true) {
-            if (peek() != Code.LESS_THAN) {
-                unexpected(peek())
-            }
-            var p = peek(2)
-            if (p == Code.EXCLAMATION) {
-                element.addComment(parseComment())
-            } else if (p == Code.EOF) {
-                unexpected(p)
-            } else {
-                element.addElement(parseElement())
-            }
+            // remember the start in case it's xtext, and so we need to 
+            // include the whitespace in its value
+            var start = _cur
             skipOptionalWhitespace()
-            if (peek() == Code.LESS_THAN && peek(2) == Code.SLASH) {
-                // closing tag
-                break
+            var p1 = peek()
+            if (p1 == Code.LESS_THAN) {
+
+                // some kind of tag -> not xtext
+                var p2 = peek(2)
+                if (p2 == Code.SLASH) {
+                    // closing tag: this is the end of the element's content
+                    break
+                } else if (p2 == Code.EXCLAMATION) {
+
+                    // cdata or comment
+                    var p3 = peek(3)
+                    if (p3 == Code.LEFT_SQUARE) {
+                        // cdata
+                        element.addCData(parseCData())
+                    } else {
+                        // comment
+                        element.addComment(parseComment())
+                    }
+
+                } else if (p2 == Code.EOF) {
+                    unexpected(Code.EOF)
+                } else {
+                    element.addElement(parseElement())
+                }
+
+            } else if (p1 == Code.EOF) {
+                unexpected(Code.EOF)
+            } else {
+                // xtext, so we go back and include the whitespace in its value
+                _cur = start
+                element.addText(parseText())
             }
         }
     }
@@ -959,6 +1005,83 @@ class XAttribute is XObject {
 
 }
 
+class XText is XObject {
+    #doc = "Create from string"
+    #arg(name=text)
+    static parse(text) {
+        var parser = XParser.new(text)
+        return parser.parseText()
+    }
+    write(writerCallable) {
+        var writer = XWriter.new(writerCallable)
+        writer.writeText(this)
+    }
+
+    writeWith(writer, indent) {
+        writer.writeText(this)
+    }
+
+    #doc = "Create a new comment with the given string content"
+    #arg(name=value)
+    construct new(value) {
+        this.value = value
+    }
+
+    #doc = "Get the string content of this comment"
+    value { _value }
+
+    #doc = "Set the string content of this comment. If it's not a string, it is converted with toString"
+    #arg(name=value)
+    value=(value) {
+        if (value == null) {
+            _value = ""
+        } else if (value is String) {
+            _value = value
+        } else {
+            _value = value.toString 
+        }
+    }
+
+    addTo(parent) {
+        parent.addText(this)
+    }
+
+    removeFrom(parent) {
+        parent.removeText(this)
+    }
+}
+
+class XCData is XText {
+    #doc = "Create from string"
+    #arg(name=text)
+    static parse(text) {
+        var parser = XParser.new(text)
+        return parser.parseCData()
+    }
+    write(writerCallable) {
+        var writer = XWriter.new(writerCallable)
+        writer.writeCData(this)
+    }
+
+    writeWith(writer, indent) {
+        writer.writeCData(this)
+    }
+
+    #doc = "Create a new comment with the given string content"
+    #arg(name=value)
+    construct new(value) {
+        super(value)
+    }
+
+    addTo(parent) {
+        parent.addCData(this)
+    }
+
+    removeFrom(parent) {
+        parent.removeCData(this)
+    }
+}
+
 #doc = "An XML comment"
 class XComment is XObject {
     #doc = "Create from string"
@@ -969,6 +1092,10 @@ class XComment is XObject {
     }
     write(writerCallable) {
         var writer = XWriter.new(writerCallable)
+        writer.writeComment(this)
+    }
+
+    writeWith(writer, indent) {
         writer.writeComment(this)
     }
 
@@ -1079,10 +1206,13 @@ class XElement is XContainer {
         writer.writeElement(this)
     }
 
+    writeWith(writer, indent) {
+        writer.writeElement(this, indent)
+    }
+
     init_(name) {
         this.name = name
         _attributes = []
-        _value = ""
         init_()
     }
 
@@ -1093,7 +1223,7 @@ class XElement is XContainer {
             if (child is XObject) {
                 child.addTo(this)
             } else {
-                value = child
+                addText(XText.new(child))
             }
         }
     }
@@ -1116,7 +1246,7 @@ class XElement is XContainer {
         // be careful here, a String is a Sequence so this check must come before the Sequence one
         if (content is String) {
             init_(name)
-            value = content
+            addText(XText.new(content))
             return
         }
         if (content is Sequence) {
@@ -1127,7 +1257,7 @@ class XElement is XContainer {
         if (content is XObject) {
             content.addTo(this)
         } else {
-            value = content
+            addText(XText.new(content))
         }
     }
 
@@ -1160,18 +1290,24 @@ class XElement is XContainer {
     }
 
     #doc = "Get string content. If content is not a String, returns empty string"
-    value { _value }
+    value {
+        var result = ""
+        for (node in nodes) {
+            if (node is XText) {
+                result = result + node.value
+            }
+        }
+        return result
+    }
 
-    #doc = "Set string content. . If it's not a string, it is converted with toString"
+    #doc = "Replace all current content with the given string. If it's not a string, it is converted with toString"
     #arg(name=value)
     value=(value) {
+        nodes.clear()
         if (value == null) {
-            _value = ""
-        } else if (value is String) {
-            _value = value
-        } else {
-            _value = value.toString 
+            return
         }
+        addText(XText.new(value))
     }
 
     #doc = "Gets the attribute of this name, or null if no attribute of the name exists"
@@ -1191,7 +1327,9 @@ class XElement is XContainer {
     #doc = "Add a child node to the element. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
     #arg(name=child)
     add(child) {
-        if (child is Sequence) {
+        if (child is String) {
+            addText(XText.new(child))
+        } else if (child is Sequence) {
             addAll(child)
         } else {
             child.addTo(this)
@@ -1213,6 +1351,22 @@ class XElement is XContainer {
 
     removeAttribute(child) {
       _attributes.remove(child)
+    }
+
+    addText(child) {
+        nodes.add(child)
+    }
+
+    removeText(child) {
+        nodes.remove(child)
+    }
+
+    addCData(child) {
+        nodes.add(child)
+    }
+
+    removeCData(child) {
+        nodes.remove(child)
     }
 
     addTo(parent) {
