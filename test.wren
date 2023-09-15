@@ -213,46 +213,58 @@ Test.run("Comment: Set value converted to string") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Element: Add element") {
+Test.run("Element: Add and remove element") {
     var parent = XElement.new("parent")
     var child = XElement.new("child")
     parent.add(child)
     Assert.countOf(parent.nodes, 1)
     var c = parent.nodes[0]
     Assert.equal(c, child)
+
+    parent.remove(child)
+    Assert.countOf(parent.nodes, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Element: Add comment") {
+Test.run("Element: Add and remove comment") {
     var parent = XElement.new("parent")
     var child = XComment.new("child")
     parent.add(child)
     Assert.countOf(parent.nodes, 1)
     var c = parent.nodes[0]
     Assert.equal(c, child)
+
+    parent.remove(child)
+    Assert.countOf(parent.nodes, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Element: Add XText") {
+Test.run("Element: Add and remove XText") {
     var parent = XElement.new("parent")
     var child = XText.new("child")
     parent.add(child)
     Assert.countOf(parent.nodes, 1)
     var c = parent.nodes[0]
     Assert.equal(c, child)
+
+    parent.remove(child)
+    Assert.countOf(parent.nodes, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Element: Add CData") {
+Test.run("Element: Add and remove CData") {
     var parent = XElement.new("parent")
     var child = XCData.new("child")
     parent.add(child)
     Assert.countOf(parent.nodes, 1)
     var c = parent.nodes[0]
     Assert.equal(c, child)
+
+    parent.remove(child)
+    Assert.countOf(parent.nodes, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -279,13 +291,16 @@ Test.run("Element: Add multiple strings interpreted as one merged value") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Element: Add attribute") {
+Test.run("Element: Add and remove attribute") {
     var parent = XElement.new("parent")
     var child = XAttribute.new("child", "attribute content")
     parent.add(child)
     Assert.countOf(parent.attributes, 1)
     var c = parent.attributes[0]
     Assert.equal(c, child)
+
+    parent.remove(child)
+    Assert.countOf(parent.attributes, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -375,24 +390,30 @@ Test.run("Element: Construct with non-string value and attribute") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Document: Add element") {
+Test.run("Document: Add and remove element") {
     var parent = XDocument.new()
     var child = XElement.new("child")
     parent.add(child)
     Assert.countOf(parent.nodes, 1)
     var c = parent.nodes[0]
     Assert.equal(c, child)
+
+    parent.remove(child)
+    Assert.countOf(parent.nodes, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Document: Add comment") {
+Test.run("Document: Add and remove comment") {
     var parent = XDocument.new()
     var child = XComment.new("child")
     parent.add(child)
     Assert.countOf(parent.nodes, 1)
     var c = parent.nodes[0]
     Assert.equal(c, child)
+
+    parent.remove(child)
+    Assert.countOf(parent.nodes, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
