@@ -2,7 +2,7 @@
 
  XSequence
  
- Version : 3.0.0
+ Version : 3.1.0
  Author  : Deijin27
  Licence : MIT
  Website : https://github.com/deijin27/wren-xsequence
