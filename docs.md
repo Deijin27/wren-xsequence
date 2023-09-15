@@ -8,14 +8,6 @@ An XML attribute
 
 Create a new attribute with the given name and value. If the provided value isn't a string, it will be converted with toString
 
-### name=(value)
-
-Set the name of this attribute. This must be a string.
-
-### name
-
-Get the name of this attribute. The name cannot be changed
-
 ### static parse(text)
 
 Create from string
@@ -32,17 +24,53 @@ Create a new attribute defining the default namespace xmlns='value'
 
 Create a new attribute defining an namespace xmlns:prefix='value'
 
+### name
+
+Get the name of this attribute. The name cannot be changed
+
+### name=(value)
+
+Set the name of this attribute. This must be a string.
+
 ### toString
 
 Convert to string representation
+
+### value
+
+Get the string value of the attribute
 
 ### value=(value)
 
 Set the string value of the attribute. If the provided value isn't a string, it will be converted with toString
 
+### write(writerCallable)
+
+Convert to string in parts and pass to a function. Allows more efficient writing to file streams where avaliable
+
+## XCData
+
+An XML CDATA node
+
+### construct new(value)
+
+Create a new Text node with the given string content
+
+### static parse(text)
+
+Create from string
+
+### toString
+
+Convert to string representation
+
 ### value
 
-Get the string value of the attribute
+Get the string content
+
+### value=(value)
+
+Set the string content. If it's not a string, it is converted with toString
 
 ### write(writerCallable)
 
@@ -80,29 +108,29 @@ Convert to string in parts and pass to a function. Allows more efficient writing
 
 An XML document
 
+### construct new()
+
+Creates an empty document
+
 ### construct new(content)
 
 Creates a document with content. Content can be XElement, XComment, or Sequence of them
 
-### construct new()
+### static parse(text)
 
-Creates an empty document
+Create from parsing a string
 
 ### add(child)
 
 Add a child node to the document. This can be an XComment or an XElement, or a Sequence of them.
 
+### addAll(sequence)
+
+Adds each of the items in the sequence to this
+
 ### comments
 
 Sequence of the child comments
-
-### elements(name)
-
-Gets all elements of the given name. An empty sequence if no elements are found
-
-### elements
-
-Sequence of the child elements
 
 ### element(name)
 
@@ -111,6 +139,14 @@ Gets the first element of this name, or null if no element of the name exists
 ### elementValue(name)
 
 Gets the String value of the first element of this name. Since an element's value is never null, this will only be null if the element is not found.
+
+### elements
+
+Sequence of the child elements
+
+### elements(name)
+
+Gets all elements of the given name. An empty sequence if no elements are found
 
 ### nodes
 
@@ -123,10 +159,6 @@ Remove a child XComment or XElement
 ### root
 
 The first and only node in this document that is an XElement. null if there is no XElement in the document.
-
-### static parse(text)
-
-Create from parsing a string
 
 ### toString
 
@@ -151,6 +183,22 @@ Creates element. Content can be text content, or XAttribute, XElement, XComment,
 Anything else is converted with toString. Keep in mind that a Sequence will not be converted with toString,
 but rather, it is iterated over.
 
+### static parse(text)
+
+Create from string
+
+### add(child)
+
+Add a child attribute/node, or a Sequence of them.
+
+### addAll(sequence)
+
+Adds each of the items in the sequence to this
+
+### attribute(name)
+
+Gets the attribute of this name, or null if no attribute of the name exists
+
 ### attributeValue(name)
 
 Gets the String value of the attribute of this name. Since an attribute's value is never null, this will only be null if the attribute is not found.
@@ -159,21 +207,13 @@ Gets the String value of the attribute of this name. Since an attribute's value 
 
 Sequence of the attributes of this element
 
-### attribute(name)
-
-Gets the attribute of this name, or null if no attribute of the name exists
-
-### add(child)
-
-Add a child node to the document. This can be an XAttribute, XComment or an XElement, or a Sequence of them.
-
 ### comments
 
 Sequence of the child comments
 
-### elements(name)
+### element(name)
 
-Gets all elements of the given name. An empty sequence if no elements are found
+Gets the first element of this name, or null if no element of the name exists
 
 ### elementValue(name)
 
@@ -183,13 +223,9 @@ Gets the String value of the first element of this name. Since an element's valu
 
 Sequence of the child elements
 
-### element(name)
+### elements(name)
 
-Gets the first element of this name, or null if no element of the name exists
-
-### nodes
-
-Sequence of the child nodes
+Gets all elements of the given name. An empty sequence if no elements are found
 
 ### name
 
@@ -199,29 +235,29 @@ Get the name of this element
 
 Set the name of this element. This must be a string.
 
+### nodes
+
+Sequence of the child nodes
+
 ### remove(child)
 
-Remove a child XAttribute or XElement
+Remove a child attribute or node
 
 ### setAttributeValue(name, value)
 
 Sets value of existing attribute, or creates new attribute. null value removes the attribute
 
-### static parse(text)
-
-Create from string
-
 ### toString
 
 Convert to string representation
 
-### value=(value)
-
-Set string content. . If it's not a string, it is converted with toString
-
 ### value
 
 Get string content. If content is not a String, returns empty string
+
+### value=(value)
+
+Replace all current content with the given string. If it's not a string, it is converted with toString
 
 ### write(writerCallable)
 
@@ -231,6 +267,14 @@ Convert to string in parts and pass to a function. Allows more efficient writing
 
 A utility class for working with XML names and namespaces
 
+### static build(namespace, localName)
+
+Build a name string from it's components
+
+### static split(name)
+
+Split a string of format '{namespace}localName' into an XName which has properties to access it's namespace and local name
+
 ### localName
 
 The local name of this XML name
@@ -238,14 +282,6 @@ The local name of this XML name
 ### namespace
 
 The namespace of this XML name
-
-### static split(name)
-
-Split a string of format '{namespace}localName' into an XName which has properties to access it's namespace and local name
-
-### static build(namespace, localName)
-
-Build a name string from it's components
 
 ### toString
 
@@ -255,11 +291,39 @@ Convert to string
 
 A utility class for working with XML namespaces. You will probably never need this
 
+### static xml
+
+The xml namespace value 'http://www.w3.org/XML/1998/namespace'. It's easier to use XAttribute.xml
+
 ### static xmlns
 
 The xmlns namespace value 'https://www.w3.org/2000/xmlns/'. It's easier to use XAttribute.xmlns
 
-### static xml
+## XText
 
-The xml namespace value 'http://www.w3.org/XML/1998/namespace'. It's easier to use XAttribute.xml
+An XML text node
+
+### construct new(value)
+
+Create a new Text node with the given string content
+
+### static parse(text)
+
+Create from string
+
+### toString
+
+Convert to string representation
+
+### value
+
+Get the string content
+
+### value=(value)
+
+Set the string content. If it's not a string, it is converted with toString
+
+### write(writerCallable)
+
+Convert to string in parts and pass to a function. Allows more efficient writing to file streams where avaliable
 

@@ -2,9 +2,7 @@
 
 For use with https://wren.io/cli/
 
-Generate documentation files using attributes
-
-This gives a whole new meaning to "hacky"
+Hackyish way to generate documentation files using attributes
 
 > wren_cli.exe generate_docs.wren > docs.md
 
@@ -26,8 +24,22 @@ code = code
 
 Meta.eval(code)
 
+var stringCompare = Fn.new {|a, b|
+  var pointsA = a.codePoints
+  var pointsB = b.codePoints
+  for (i in 0...pointsA.count) {
+    if (i >= pointsB.count) {
+      return false
+    }
+    if (pointsA[i] != pointsB[i]) {
+      return pointsA[i] < pointsB[i]
+    }
+  }
+  return true
+}
+
 var moduleVariables = Meta.getModuleVariables("./generate_docs")
-moduleVariables.sort {|a, b| a.codePoints[1] < b.codePoints[1] }
+moduleVariables.sort {|a, b| stringCompare.call(a, b) }
 
 for (variable in moduleVariables) {
   if (variable == "Object metaclass") {
@@ -41,6 +53,9 @@ for (variable in moduleVariables) {
 
   if (v.attributes == null) {
     continue
+  }
+  if (v.attributes.self == null) {
+    Fiber.abort("Missing doc comment on class '%(v.name)'")
   }
   var classAttr = v.attributes.self[null]
   if (classAttr == null) {
@@ -74,9 +89,11 @@ for (variable in moduleVariables) {
   // sort the method signatures
   var signatures = methodAttrs.keys.toList
   signatures.sort {|a, b|
-    if (a.startsWith("init") && !b.startsWith("init")) return true
-    if (b.startsWith("init") && !a.startsWith("init")) return false
-    return a.codePoints[0] < b.codePoints[0]
+    if (a.startsWith("init ") && !b.startsWith("init ")) return true
+    if (b.startsWith("init ") && !a.startsWith("init ")) return false
+    if (a.startsWith("static ") && !b.startsWith("static ")) return true
+    if (b.startsWith("static ") && !a.startsWith("static ")) return false
+    return stringCompare.call(a, b)
   }
   // look for our method attributes
   for (signature in signatures) {

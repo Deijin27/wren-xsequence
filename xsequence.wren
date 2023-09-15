@@ -995,16 +995,18 @@ class XAttribute is XObject {
         }
     }
 
+    #internal
     addTo(parent) {
         parent.addAttribute(this)
     }
-
+    #internal
     removeFrom(parent) {
         parent.removeAttribute(this)
     }
 
 }
 
+#doc = "An XML text node"
 class XText is XObject {
     #doc = "Create from string"
     #arg(name=text)
@@ -1017,20 +1019,21 @@ class XText is XObject {
         writer.writeText(this)
     }
 
+    #internal
     writeWith(writer, indent) {
         writer.writeText(this)
     }
 
-    #doc = "Create a new comment with the given string content"
+    #doc = "Create a new Text node with the given string content"
     #arg(name=value)
     construct new(value) {
         this.value = value
     }
 
-    #doc = "Get the string content of this comment"
+    #doc = "Get the string content"
     value { _value }
 
-    #doc = "Set the string content of this comment. If it's not a string, it is converted with toString"
+    #doc = "Set the string content. If it's not a string, it is converted with toString"
     #arg(name=value)
     value=(value) {
         if (value == null) {
@@ -1042,15 +1045,17 @@ class XText is XObject {
         }
     }
 
+    #internal
     addTo(parent) {
         parent.addText(this)
     }
-
+    #internal
     removeFrom(parent) {
         parent.removeText(this)
     }
 }
 
+#doc = "An XML CDATA node"
 class XCData is XText {
     #doc = "Create from string"
     #arg(name=text)
@@ -1063,20 +1068,22 @@ class XCData is XText {
         writer.writeCData(this)
     }
 
+    #internal
     writeWith(writer, indent) {
         writer.writeCData(this)
     }
 
-    #doc = "Create a new comment with the given string content"
+    #doc = "Create a new CData node with the given string content"
     #arg(name=value)
     construct new(value) {
         super(value)
     }
 
+    #internal
     addTo(parent) {
         parent.addCData(this)
     }
-
+    #internal
     removeFrom(parent) {
         parent.removeCData(this)
     }
@@ -1095,6 +1102,7 @@ class XComment is XObject {
         writer.writeComment(this)
     }
 
+    #internal
     writeWith(writer, indent) {
         writer.writeComment(this)
     }
@@ -1120,10 +1128,11 @@ class XComment is XObject {
         }
     }
 
+    #internal
     addTo(parent) {
         parent.addComment(this)
     }
-
+    #internal
     removeFrom(parent) {
         parent.removeComment(this)
     }
@@ -1167,23 +1176,24 @@ class XContainer is XObject {
     #doc = "Sequence of the child comments"
     comments { _nodes.where {|node| node is XComment }}
 
+    #internal
     addElement(child) {
         _nodes.add(child)
     }
-
+    #internal
     addComment(child) {
         _nodes.add(child)
     }
-
+    #internal
     removeElement(child) {
       _nodes.remove(child)
     }
-
+    #internal
     removeComment(child) {
       _nodes.remove(child)
     }
 
-    #doc = "Adds each of the elements in sequence to this"
+    #doc = "Adds each of the items in the sequence to this"
     #arg(name=sequence)
     addAll(sequence) {
       for (i in sequence) {
@@ -1206,6 +1216,7 @@ class XElement is XContainer {
         writer.writeElement(this)
     }
 
+    #internal
     writeWith(writer, indent) {
         writer.writeElement(this, indent)
     }
@@ -1324,7 +1335,7 @@ class XElement is XContainer {
     #doc = "Sequence of the attributes of this element"
     attributes { _attributes }
 
-    #doc = "Add a child node to the element. This can be an XAttribute, XComment or an XElement, or a Sequence of them."
+    #doc = "Add a child attribute/node, or a Sequence of them."
     #arg(name=child)
     add(child) {
         if (child is String) {
@@ -1336,43 +1347,44 @@ class XElement is XContainer {
         }
     }
 
-    #doc = "Remove a child XAttribute or XElement"
+    #doc = "Remove a child attribute or node"
     #arg(name=child)
     remove(child) {
         child.removeFrom(this)
     }
 
+    #internal
     addAttribute(child) {
         if (attribute(child.name) != null){
             Fiber.abort("Duplicate XAttribute of name '%(child.name)'")
         }
         _attributes.add(child)
     }
-
+    #internal
     removeAttribute(child) {
       _attributes.remove(child)
     }
-
+    #internal
     addText(child) {
         nodes.add(child)
     }
-
+    #internal
     removeText(child) {
         nodes.remove(child)
     }
-
+    #internal
     addCData(child) {
         nodes.add(child)
     }
-
+    #internal
     removeCData(child) {
         nodes.remove(child)
     }
-
+    #internal
     addTo(parent) {
         parent.addElement(this)
     }
-
+    #internal
     removeFrom(parent) {
         parent.removeElement(this)
     }
@@ -1481,6 +1493,7 @@ class XDocument is XContainer {
         child.removeFrom(this)
     }
 
+    #internal
     addElement(child) {
       if (root != null) {
           Fiber.abort("Cannot add more than one XElement to document")
