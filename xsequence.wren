@@ -1024,7 +1024,7 @@ class XText is XObject {
         writer.writeText(this)
     }
 
-    #doc = "Create a new Text node with the given string content"
+    #doc = "Create a new XText node with the given string content"
     #arg(name=value)
     construct new(value) {
         this.value = value
@@ -1166,14 +1166,14 @@ class XContainer is XObject {
     #doc = "Sequence of the child nodes"
     nodes { _nodes }
 
-    #doc = "Sequence of the child elements"
+    #doc = "Sequence of the child elements, or an empty sequence if there are no elements"
     elements { _nodes.where {|node| node is XElement } }
 
-    #doc = "Gets all elements of the given name. An empty sequence if no elements are found"
+    #doc = "Gets all elements of the given name, or an empty sequence if no matching elements are found"
     #arg(name=name)
     elements(name) { _nodes.where {|node| node is XElement && node.name == name } }
 
-    #doc = "Sequence of the child comments"
+    #doc = "Sequence of the child comments, or an empty sequence if there are no comments"
     comments { _nodes.where {|node| node is XComment }}
 
     #internal
@@ -1193,7 +1193,7 @@ class XContainer is XObject {
       _nodes.remove(child)
     }
 
-    #doc = "Adds each of the items in the sequence to this"
+    #doc = "Adds each of the items in the sequence to this container"
     #arg(name=sequence)
     addAll(sequence) {
       for (i in sequence) {
@@ -1246,7 +1246,7 @@ class XElement is XContainer {
     }
 
     #doc = """
-    Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence.
+    Creates element. Content can be string, node, attribute, or Sequence of those things.
     
     Anything else is converted with toString. Keep in mind that a Sequence will not be converted with toString,
     but rather, it is iterated over.

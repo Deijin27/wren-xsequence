@@ -54,7 +54,7 @@ An XML CDATA node
 
 ### construct new(value)
 
-Create a new Text node with the given string content
+Create a new XText node with the given string content
 
 ### static parse(text)
 
@@ -126,11 +126,11 @@ Add a child node to the document. This can be an XComment or an XElement, or a S
 
 ### addAll(sequence)
 
-Adds each of the items in the sequence to this
+Adds each of the items in the sequence to this container
 
 ### comments
 
-Sequence of the child comments
+Sequence of the child comments, or an empty sequence if there are no comments
 
 ### element(name)
 
@@ -142,11 +142,11 @@ Gets the String value of the first element of this name. Since an element's valu
 
 ### elements
 
-Sequence of the child elements
+Sequence of the child elements, or an empty sequence if there are no elements
 
 ### elements(name)
 
-Gets all elements of the given name. An empty sequence if no elements are found
+Gets all elements of the given name, or an empty sequence if no matching elements are found
 
 ### nodes
 
@@ -178,7 +178,7 @@ Creates empty element
 
 ### construct new(name, content)
 
-Creates element. Content can be text content, or XAttribute, XElement, XComment, or Sequence.
+Creates element. Content can be string, node, attribute, or Sequence of those things.
 
 Anything else is converted with toString. Keep in mind that a Sequence will not be converted with toString,
 but rather, it is iterated over.
@@ -193,7 +193,7 @@ Add a child attribute/node, or a Sequence of them.
 
 ### addAll(sequence)
 
-Adds each of the items in the sequence to this
+Adds each of the items in the sequence to this container
 
 ### attribute(name)
 
@@ -209,7 +209,7 @@ Sequence of the attributes of this element
 
 ### comments
 
-Sequence of the child comments
+Sequence of the child comments, or an empty sequence if there are no comments
 
 ### element(name)
 
@@ -221,11 +221,11 @@ Gets the String value of the first element of this name. Since an element's valu
 
 ### elements
 
-Sequence of the child elements
+Sequence of the child elements, or an empty sequence if there are no elements
 
 ### elements(name)
 
-Gets all elements of the given name. An empty sequence if no elements are found
+Gets all elements of the given name, or an empty sequence if no matching elements are found
 
 ### name
 
@@ -305,7 +305,7 @@ An XML text node
 
 ### construct new(value)
 
-Create a new Text node with the given string content
+Create a new XText node with the given string content
 
 ### static parse(text)
 
