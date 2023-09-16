@@ -2,7 +2,7 @@
 import "./xsequence" for XDocument, XElement, XAttribute, XComment, XParser, XWriter, XName, NamespaceStack, XCData, XText
 import "./wren-assert" for Assert
 
-var DEBUG = true // set true to view the full callstack from a failed test
+var DEBUG = false // set true to view the full callstack from a failed test
 
 var PASSED_TEST_COUNT = 0
 var FAILED_TEST_COUNT = 0
@@ -860,6 +860,14 @@ Test.run("Parse element with text content with surrounding whitespace") {
     var parser = XParser.new(elementString)
     var result = parser.parseElement()
     var expected = XElement.new("Elem", " hello  ")
+    AssertCustom.elementIdentical(result, expected)
+}
+
+Test.run("Parse element with multi-byte code points") {
+    var elementString = "<name>Pokémon</name>"
+    var parser = XParser.new(elementString)
+    var result = parser.parseElement()
+    var expected = XElement.new("name", "Pokémon")
     AssertCustom.elementIdentical(result, expected)
 }
 

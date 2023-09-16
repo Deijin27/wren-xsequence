@@ -319,7 +319,7 @@ class XWriter {
 
 #internal
 class Code {
-    static EOF           { -1   } // end of file
+    static EOF           { -2   } // end of file (not using -1 because it's a common default so sometimes bugs can lead to false positives for EOF)
     
     static NEWLINE       { 0x0A } // \n
     static TAB           { 0x09 } // \t
@@ -430,17 +430,25 @@ class XParser {
         source = source.replace("\r", "")
 
         _cur = -1
-        _end = source.count
+
+        // indexing code points directly doesn't work because the indexes are 
+        // to byte positions, not code point positions, so it you miss the start
+        // of a multi-byte point, you end up with -1
+        // we generate a list first in order to safely iterate through code points
+        // https://wren.io/modules/core/string.html#codepoints
+        _points = []
+        for (p in source.codePoints) {
+            _points.add(p)
+        }
+        _end = _points.count
 
         // skip utf-8 bom
         if (source.startsWith("\xEF\xBB\xBF")) {
             _cur = _cur + 3
             _end = _end + 3
         }
-
         _line = 0
         _col = 0
-        _points = source.codePoints
     }
 
     peek() { peek(1) }
