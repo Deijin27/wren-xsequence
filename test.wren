@@ -1,6 +1,7 @@
 
 import "./xsequence" for XDocument, XElement, XAttribute, XComment, XParser, XWriter, XName, NamespaceStack, XCData, XText
 import "./wren-assert" for Assert
+import "io" for File
 
 var DEBUG = false // set true to view the full callstack from a failed test
 
@@ -1118,6 +1119,15 @@ Test.run("Parse namespace priority is respected") {
     var result = parser.parseDocument()
 
     AssertCustom.documentIdentical(result, expected)
+}
+
+///"""////////////////////////////////////////////////////
+// TEST PARSING FILES
+//////////////////////////////////////////////////////////
+
+Test.run("File with utf8 BOM") {
+    var text = File.read("test_data/file_with_bom.xml")
+    var doc = XDocument.parse(text) // shouldn't assert
 }
 
 ////////////////////////////////////////////////////////////////////////////////

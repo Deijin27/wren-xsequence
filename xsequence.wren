@@ -443,9 +443,8 @@ class XParser {
         _end = _points.count
 
         // skip utf-8 bom
-        if (source.startsWith("\xEF\xBB\xBF")) {
-            _cur = _cur + 3
-            _end = _end + 3
+        if (_points[0] == 65279) {
+            _cur = _cur + 1
         }
         _line = 0
         _col = 0
