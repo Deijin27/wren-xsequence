@@ -446,8 +446,8 @@ class XParser {
         if (_points[0] == 65279) {
             _cur = _cur + 1
         }
-        _line = 0
-        _col = 0
+        _line = 1
+        _col = 1
     }
 
     peek() { peek(1) }
@@ -466,7 +466,7 @@ class XParser {
     advance() {
         if (_points[_cur] == Code.NEWLINE) {
             _line = _line + 1
-            _col = 0
+            _col = 1
         } else {
             _col = _col + 1
         }
