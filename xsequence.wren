@@ -990,16 +990,30 @@ class XAttribute is XObject {
     #doc = "Get the string value of the attribute"
     value { _value }
 
-    #doc = "Set the string value of the attribute. If the provided value isn't a string, it will be converted with toString"
+    #doc = "Set the string value of the attribute, coverting to string where necessary using a converter registered under an id matching the type of the object. If no converter is found, falls back to .toString"
     #arg(name=value)
     value=(value) {
-        if (value == null) {
-            _value = ""
-        } else if (value is String) {
-            _value = value
-        } else {
-            _value = value.toString 
+        _value = XConverter.toStringInferred(value)
+    }
+
+    #doc = "Get the value of the attribute, using the converter registered by the provided id. Aborts fiber if no such converter is found, or it fails to convert the value"
+    #arg(name=converterId)
+    value(converterId) {
+        var conv = XConverter.get(converterId)
+        var result = conv.fromString(value)
+        if (result == null) {
+            Fiber.abort("Failed to convert value of attribute '%(name)' value '%(value)'. %(conv.description)")
         }
+        return result
+    }
+
+    #doc = "Gets the value of the attribute using the converter registered by the provided id. If no such converter is found, or it fails to convert, the provided default is returned"
+    #arg(name=converterId)
+    #arg(name=default)
+    value(converterId, default) {
+        var conv = XConverter.get(converterId)
+        var result = conv.fromString(value)
+        return result == null ? default : result
     }
 
     #internal
@@ -1043,13 +1057,7 @@ class XText is XObject {
     #doc = "Set the string content. If it's not a string, it is converted with toString"
     #arg(name=value)
     value=(value) {
-        if (value == null) {
-            _value = ""
-        } else if (value is String) {
-            _value = value
-        } else {
-            _value = value.toString 
-        }
+        _value = XConverter.toStringInferred(value)
     }
 
     #internal
@@ -1126,13 +1134,7 @@ class XComment is XObject {
     #doc = "Set the string content of this comment. If it's not a string, it is converted with toString"
     #arg(name=value)
     value=(value) {
-        if (value == null) {
-            _value = ""
-        } else if (value is String) {
-            _value = value
-        } else {
-            _value = value.toString 
-        }
+        _value = XConverter.toStringInferred(value)
     }
 
     #internal
@@ -1168,6 +1170,32 @@ class XContainer is XObject {
     elementValue(name) {
         var e = element(name)
         return e != null ? e.value : null
+    }
+
+    #doc = "Get first element of name. If no element with that name is found, aborts fiber."
+    #arg(name=name)
+    elementOrAbort(name) {}
+
+    #doc = "Get the first element of name, and converts using the given converter. If no element of that name is found, or the value fails to be converted, aborts fiber"
+    #arg(name=name)
+    #arg(name=converterId)
+    elementValue(name, converterId) {
+        var e = elementOrAbort(name)
+        var conv = XConverter.get(converterId)
+        var result = conv.fromString(e.value)
+        if (result == null) {
+            Fiber.abort("Failed to convert value of element '%(this.name)' element '%(name)' value '%(e.value)'. %(conv.description)")
+        }
+        return result
+    }
+
+    #doc = "Get first element of name, and converts using the given converter. If no element of that name is found, or the value fails to be converted, returns default"
+    #arg(name=name)
+    #arg(name=converterId)
+    #arg(name=default)
+    elementValue(name, converterId, default) {
+        var e = element(name)
+        return e == null ? default : e.value(converterId, default)
     }
 
     #doc = "Sequence of the child nodes"
@@ -1309,6 +1337,15 @@ class XElement is XContainer {
 
     #doc = "Get string content. If content is not a String, returns empty string"
     value {
+        if (nodes.count == 1) {
+            if (nodes[0] is XText) {
+                return nodes[0].value
+            }
+            return ""
+        }
+        if (nodes.count == 0) {
+            return ""
+        }
         var result = ""
         for (node in nodes) {
             if (node is XText) {
@@ -1318,14 +1355,35 @@ class XElement is XContainer {
         return result
     }
 
-    #doc = "Replace all current content with the given string. If it's not a string, it is converted with toString"
+    #doc = "Replace all current content with the given string. If it's not a string, it is converted with a converter registered with id matching type of the object, or .toString"
     #arg(name=value)
     value=(value) {
         nodes.clear()
-        if (value == null) {
+        var text = XText.new(value)
+        if (text.value == "") {
             return
         }
-        addText(XText.new(value))
+        addText(text)
+    }
+
+    #doc = "Get the value of the element using the converter registered by the provided id. Aborts fiber if no such converter is found, or it fails to convert the value"
+    #arg(name=converterId)
+    value(converterId) {
+        var conv = XConverter.get(converterId)
+        var result = conv.fromString(value)
+        if (result == null) {
+            Fiber.abort("Failed to convert value of element '%(name)' value '%(value)'. %(conv.description)")
+        }
+        return result
+    }
+
+    #doc = "Gets the value of the element using the converter registered by the provided id. If no such converter is found, or it fails to convert, the provided default is returned"
+    #arg(name=converterId)
+    #arg(name=default)
+    value(converterId, default) {
+        var conv = XConverter.get(converterId)
+        var result = conv.fromString(value)
+        return result == null ? default : result
     }
 
     #doc = "Gets the attribute of this name, or null if no attribute of the name exists"
@@ -1337,6 +1395,47 @@ class XElement is XContainer {
             }
         }
         return null
+    }
+
+    #doc = "Get attribute of name. Aborts fiber if no attribute of that name is found"
+    #arg(name=name)
+    attributeOrAbort(name) {
+        var attr = attribute(name)
+        if (attr == null) {
+            Fiber.abort("Element '%(this.name)' missing required attribute '%(name)'")
+        }
+        return attr
+    }
+
+    #doc = "Get attribute of name, and converts using the given converter. If no attribute of that name is found, or the value fails to be converted, aborts fiber"
+    #arg(name=name)
+    #arg(name=converterId)
+    attributeValue(name, converterId) {
+        var attr = attributeOrAbort(name)
+        var conv = XConverter.get(converterId)
+        var result = conv.fromString(attr.value)
+        if (result == null) {
+            Fiber.abort("Failed to convert value of element '%(this.name)' attribute '%(name)' value '%(attr.value)'. %(conv.description)")
+        }
+        return result
+    }
+
+    #doc = "Get attribute of name, and converts using the given converter. If no attribute of that name is found, or the value fails to be converted, returns default"
+    #arg(name=name)
+    #arg(name=converterId)
+    #arg(name=default)
+    attributeValue(name, converterId, default) {
+        var attr = attribute(name)
+        return attr == null ? default : attr.value(converterId, default)
+    }
+
+    #override
+    elementOrAbort(name) {
+        var e = element(name)
+        if (e == null) {
+            Fiber.abort("Element '%(this.name)' missing required element '%(name)'")
+        }
+        return e
     }
 
     #doc = "Sequence of the attributes of this element"
@@ -1500,6 +1599,15 @@ class XDocument is XContainer {
         child.removeFrom(this)
     }
 
+    #override
+    elementOrAbort(name) {
+        var e = element(name)
+        if (e == null) {
+            Fiber.abort("Document '%(this.name)' missing required root element '%(name)'")
+        }
+        return e
+    }
+
     #internal
     addElement(child) {
       if (root != null) {
@@ -1509,3 +1617,110 @@ class XDocument is XContainer {
     }
 }
 
+#doc = "Manages converters which convert values to and from the string forms stored in the xml document. Also serves as a base class for custom converters"
+class XConverter {
+    static init_() {
+        __converters = {}
+    }
+    #doc = "Register a converters with the given id"
+    #arg(name=id)
+    #arg(name=converter)
+    static register(id, converter) {
+        if (!(converter is XConverter)) {
+            Fiber.abort("Converter registered must inherit from XConverter")
+        }
+        __converters[id] = converter
+    }
+    #doc = "Gets a converter with the given id. Aborts fiber if no match is found"
+    #arg(name=id)
+    static get(id) {
+        var converter = __converters[id]
+        if (converter == null) {
+            Fiber.abort("No converter registered for id '%(id)''")
+        }
+        return converter
+    }
+    #doc = "Gets a converter with the given id, or null if no match is found"
+    #arg(name=id)
+    static tryGet(id) {
+        return __converters[id]
+    }
+
+    #doc = "Gets a converter with the id matching the type of the provided value, or if none is found falls back to .toString"
+    #arg(name=value)
+    static toStringInferred(value) {
+        var converter = XConverter.tryGet(value.type)
+        if (converter == null) {
+            return value.toString
+        }
+        return converter.toString(value)
+    }
+
+    #doc = "The description included in error messages. Overwrite this in custom converters"
+    description { "No converter description provided" }
+
+    #doc = "Convert from string to the output value. Overwrite this in custom converters."
+    #arg(name=value)
+    fromString(value) {
+        return value
+    }
+
+    #doc = "Convert from value to string. Optionally overwrite this in custom converters, the default is .toString"
+    #arg(name=value)
+    toString(value) {
+        return value.toString
+    }
+}
+XConverter.init_()
+
+// Converters //////////////////////////////////////////////////////////////////
+
+class StringConverter is XConverter {
+    construct new() {}
+    fromString(value) {
+        return value
+    }
+    toString(value) {
+        return value
+    }
+}
+XConverter.register(String, StringConverter.new())
+
+class NullConverter is XConverter {
+    construct new() {}
+    toString(value) {
+        return ""
+    }
+}
+XConverter.register(Null, NullConverter.new())
+
+class NumConverter is XConverter {
+    construct new() {}
+    description { "Value must be a number. Hexadecimal numbers can be specified by prefixing with 0x" }
+    fromString(value) {
+        return Num.fromString(value)
+    }
+}
+XConverter.register(Num, NumConverter.new())
+
+class BoolConverter is XConverter {
+    construct new() {
+        _boolTable = {
+            "true": true,
+            "false" : false,
+            "True": true,
+            "False": false,
+            "TRUE": true,
+            "FALSE": false,
+            "1": true,
+            "0": false
+        }
+    }
+    description { "Value must be a bool (true or false)"}
+    fromString(value) {
+        return _boolTable[value]
+    }
+}
+XConverter.register(Bool, BoolConverter.new())
+
+////////////////////////////////////////////////////////////////////////////////

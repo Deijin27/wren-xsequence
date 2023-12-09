@@ -169,11 +169,31 @@ Test.run("XName: splits name correctly") {
 // TEST SYNTAX /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Attribute: Set value converted to string") {
+Test.run("Attribute: Set value num converted to string") {
     var a = XAttribute.new("name", 69)
     Assert.equal(a.value, "69")
     a.value = 4
     Assert.equal(a.value, "4")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Attribute: Set value bool converted to string") {
+    var a = XAttribute.new("name", true)
+    Assert.equal(a.value, "true")
+    a.value = false
+    Assert.equal(a.value, "false")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Attribute: Set value null converted to empty") {
+    var a = XAttribute.new("name", null)
+    Assert.equal(a.value, "")
+    a.value = "bee"
+    Assert.equal(a.value, "bee")
+    a.value = null
+    Assert.equal(a.value, "")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -196,11 +216,31 @@ Test.run("XCData: Set value converted to string") {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Test.run("Element: Set value converted to string") {
+Test.run("Element: Set value num converted to string") {
     var e = XElement.new("name", 69)
     Assert.equal(e.value, "69")
     e.value = 2
     Assert.equal(e.value, "2")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: Set value null converted to empty") {
+    var a = XElement.new("name", null)
+    Assert.equal(a.value, "")
+    a.value = "bee"
+    Assert.equal(a.value, "bee")
+    a.value = null
+    Assert.equal(a.value, "")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: Set value bool converted to string") {
+    var e = XElement.new("name", true)
+    Assert.equal(e.value, "true")
+    e.value = false
+    Assert.equal(e.value, "false")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -458,6 +498,142 @@ Test.run("Document: Constructor syntax without square brackets") {
         )
 
     AssertCustom.documentIdentical(actual, expected)
+}
+
+Test.run("Element: attributeOrAbort") {
+    var a = XAttribute.new("hello", "there")
+    var e = XElement.new("name", a)
+
+    Assert.aborts(Fn.new { a.attributeOrAbort("hi") })
+    Assert.equal(e.attributeOrAbort("hello"), a)
+}
+
+Test.run("Element: elementOrAbort") {
+    var a = XElement.new("hello")
+    var e = XElement.new("name", a)
+
+    Assert.aborts(Fn.new { a.elementOrAbort("hi") })
+    Assert.equal(e.elementOrAbort("hello"), a)
+}
+
+Test.run("Document: elementOrAbort") {
+    var a = XElement.new("hello")
+    var e = XDocument.new(a)
+
+    Assert.aborts(Fn.new { a.elementOrAbort("hi") })
+    Assert.equal(e.elementOrAbort("hello"), a)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// TEST CONVERTERS /////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Attribute: value converts to num") {
+    var a = XAttribute.new("name", "24")
+    var b = XAttribute.new("name", "hello")
+
+    Assert.equal(a.value(Num), 24)
+    Assert.aborts(Fn.new { b.value(Num) })
+    Assert.equal(a.value(Num, 5), 24)
+    Assert.equal(b.value(Num, 5), 5)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Attribute: value converts to bool") {
+    var a = XAttribute.new("name", "true")
+    var b = XAttribute.new("name", "hello")
+
+    Assert.equal(a.value(Bool), true)
+    Assert.aborts(Fn.new { b.value(Bool) })
+    Assert.equal(a.value(Bool, false), true)
+    Assert.equal(b.value(Bool, false), false)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Attribute: value converts to string") {
+    var a = XAttribute.new("name", "true")
+    var b = XAttribute.new("name", "hello")
+
+    Assert.equal(a.value(String), "true")
+    Assert.equal(a.value(String, "aloha"), "true")
+    Assert.equal(b.value(String, "wahoo"), "hello")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: value converts to num") {
+    var a = XElement.new("name", "24")
+    var b = XElement.new("name", "hello")
+
+    Assert.equal(a.value(Num), 24)
+    Assert.aborts(Fn.new { b.value(Num) })
+    Assert.equal(a.value(Num, 5), 24)
+    Assert.equal(b.value(Num, 5), 5)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: value converts to bool") {
+    var a = XElement.new("name", "true")
+    var b = XElement.new("name", "hello")
+
+    Assert.equal(a.value(Bool), true)
+    Assert.aborts(Fn.new { b.value(Bool) })
+    Assert.equal(a.value(Bool, false), true)
+    Assert.equal(b.value(Bool, false), false)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: value converts to string") {
+    var a = XElement.new("name", "true")
+    var b = XElement.new("name", "hello")
+
+    Assert.equal(a.value(String), "true")
+    Assert.equal(a.value(String, "aloha"), "true")
+    Assert.equal(b.value(String, "wahoo"), "hello")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: attribute value is null if missing") {
+    var a = XElement.new("name", XAttribute.new("hello", "24"))
+
+    Assert.equal(a.attributeValue("hello"), "24")
+    Assert.notExists(a.attributeValue("hi"))
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: attribute value converts to num") {
+    var a = XElement.new("name", XAttribute.new("hello", "24"))
+
+    Assert.equal(a.attributeValue("hello", Num), 24)
+    Assert.aborts(Fn.new { a.attributeValue("hi", Num) })
+    Assert.equal(a.attributeValue("hello", Num, 6), 24)
+    Assert.equal(a.attributeValue("hi", Num, 6), 6)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: element value converts to num") {
+    var a = XElement.new("name", XElement.new("hello", "24"))
+
+    Assert.equal(a.elementValue("hello", Num), 24)
+    Assert.aborts(Fn.new { a.attributeValue("hi", Num) })
+    Assert.equal(a.elementValue("hello", Num, 6), 24)
+    Assert.equal(a.elementValue("hi", Num, 6), 6)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+Test.run("Element: element value is null if missing") {
+    var a = XElement.new("name", XElement.new("hello", "24"))
+
+    Assert.equal(a.elementValue("hello"), "24")
+    Assert.notExists(a.elementValue("hi"))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
