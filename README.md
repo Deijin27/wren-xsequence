@@ -80,9 +80,7 @@ var colorOfFishCalledPearl = doc
 
 You can get the values converted to number, or boolean too. In the following example we get the fish called pearl,
 then get it's size converted to a Num. If there is no "size" attribute, then it uses the default value provided 2.
-If you don't provide a default, it throws an exception if there is no such attribute, or the attribute value cannot
-be converted. You can also provide Bool to convert something to a Bool, and this converter functionality is extensible
-to your own types if needed. There is similar methods for elementValue.
+This converter funcionality is extensible, see the "collada" example.
 
 ```wren
 var pearlTheFish = doc.elementOrAbort("fishies").findElement("danio") {|e| e.attributeValue("name") == "pearl" }
