@@ -1165,6 +1165,29 @@ class XContainer is XObject {
         return null
     }
 
+    #doc = "Gets the first element which fulfils the predicate, or null if no match is found"
+    #arg(name=predicate)
+    findElement(predicate) {
+        for (e in elements) {
+            if (fn.call(e)) {
+                return e
+            }
+        }
+        return null
+    }
+
+    #doc = "Gets the first element of this name which also fulfils the predicate, or null if no match is found"
+    #arg(name=name)
+    #arg(name=predicate)
+    findElement(name, predicate) {
+        for (e in elements) {
+            if (e.name == name && fn.call(e)) {
+                return e
+            }
+        }
+        return null
+    }
+
     #doc = "Gets the String value of the first element of this name. Since an element's value is never null, this will only be null if the element is not found."
     #arg(name=name)
     elementValue(name) {
