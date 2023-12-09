@@ -6,6 +6,13 @@ Based on the spec detailed here: https://validator.w3.org/feed/docs/rss2.html
 
 The RSS format uses simple xml with no namespaces.
 
+It demonstrates many convenience methods, including onces for getting Num and Bool values,
+throwing errors or falling back to defaults. The errors thrown by these methods
+provide as much context information they can with no extra effort from you.
+
+While this shows the built in Num, Bool and String converters in action, you can
+also create your own converters, this is demonstrated in the other example "collada"
+
 This code is licenced under MIT
 
 */

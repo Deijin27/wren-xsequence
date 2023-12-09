@@ -9,6 +9,8 @@ of the api come not when generating, where it's relatively simple to manage what
 have chosen to use as prefixes or default namespaces even without a namespace-managing
 api, but in parsing where you're parser must manage any valid xml it is given.
 
+It also demonstrates use of a custom converter for Colors
+
 This code is licenced under MIT
 
 */
