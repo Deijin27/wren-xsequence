@@ -67,16 +67,26 @@ var xmlText = File.read("myDocument.xml")
 var doc = XDocument.parse(xmlText)
 ```
 
-If we have a document loaded which is like the fishies document shown above, you could navigate the color of a danio fish of name "pearl" like this
+If we have a document loaded which is like the fishies document shown above, you could navigate the names of all fishies which are pink
 
 ```wren
 var colorOfFishCalledPearl = doc
-    .root
+    .elementOrAbort("fishies")
     .elements("danio")
-    .where {|e| e.attribute("name").value == "pearl" }
-    .toList[0]
-    .attribute("color")
-    .value
+    .where {|e| e.attributeValue("color") == "pink" }
+    .map {|e| e.attributeValue("name") }
+    .toList
+```
+
+You can get the values converted to number, or boolean too. In the following example we get the fish called pearl,
+then get it's size converted to a Num. If there is no "size" attribute, then it uses the default value provided 2.
+If you don't provide a default, it throws an exception if there is no such attribute, or the attribute value cannot
+be converted. You can also provide Bool to convert something to a Bool, and this converter functionality is extensible
+to your own types if needed. There is similar methods for elementValue.
+
+```wren
+var pearlTheFish = doc.elementOrAbort("fishies").findElement("danio") {|e| e.attributeValue("name") == "pearl" }
+var sizeOfPearl = pearlTheFish.attributeValue("size", Num, 2)
 ```
 
 The library also supports namespaces like so
