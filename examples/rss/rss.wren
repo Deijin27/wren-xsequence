@@ -18,8 +18,7 @@ class RssGuid {
 
     construct parse(element) {
         _value = element.value
-        var plAttr = element.attribute("isPermaLink")
-        _isPermaLink = plAttr == null || plAttr.value != "false"
+        _isPermalink = element.attributeValue("isPermaLink", Bool, true)
     }
 }
 
@@ -44,12 +43,10 @@ class RssEnclosure {
     mimeType { _mimeType }
 
     construct parse(element) {
-        _url = element.attributeValue("url")
-        _length = element.attributeValue("length")
-        _mimeType = element.attributeValue("type")
-        if (_url == null || _length == null || _mimeType == null) {
-            Fiber.abort("RssEnclosure missing required attribute. Must have url, length, and type")
-        }
+        // the following shows two functionally equivalent ways of having required string attribute value
+        _url = element.attributeOrAbort("url").value
+        _length = element.attributeValue("length", String)
+        _mimeType = element.attributeValue("type", String)
     }
 }
 
@@ -61,10 +58,7 @@ class RssSource {
 
     construct parse(element) {
         _name = element.value
-        _url = element.attributeValue("url")
-        if (_url == null) {
-            Fiber.abort("RssSource missing required attribute 'url'")
-        }
+        _url = element.attributeValue("url", String)
     }
 }
 
@@ -93,7 +87,7 @@ class RssItem {
     construct parse(element) {
         _title = element.elementValue("title")
         _link = element.elementValue("link")
-        _description = element.elementValue("description")
+        _description = element.elementValue("description", String)
         _author = element.elementValue("author")
         _category = element.elements("category").map {|e| RssCategory.parse(e) }.toList
         _comments = element.elementValue("comments")
@@ -101,9 +95,6 @@ class RssItem {
         _guid = element.elementValue("guid")
         _pubDate = element.elementValue("pubDate")
         _source = element.elementValue("source")
-        if (_title == null && _description == null) {
-            Fiber.abort("Rss Item must have at least one of title or description")
-        }
     }
 }
 
@@ -118,13 +109,10 @@ class RssTextInput {
     link { _link }
 
     construct parse(element) {
-        _title = element.elementValue("title")
-        _description = element.elementValue("description")
-        _name = element.elementValue("name")
-        _link = element.elementValue("link")
-        if (_title == null || _description == null || _name == null || _link == null) {
-            Fiber.abort("RssTextInput missing required sub element. Must have all 4 of title, description, name, and link")
-        }
+        _title = element.elementValue("title", String)
+        _description = element.elementValue("description", String)
+        _name = element.elementValue("name", String)
+        _link = element.elementValue("link", String)
     }
 }
 
@@ -159,22 +147,11 @@ class RssImage {
     description { _description }
 
     construct parse(element) {
-        _url = element.attributeValue("url")
-        _title = element.elementValue("title")
-        _link = element.elementValue("link")
-        if (_url == null || _title == null || _link == null) {
-            Fiber.abort("RssImage missing required attribute. Requires all 3 of url, title, and link")
-        }
-        _width = 88
-        var widthAttr = element.attribute("width")
-        if (widthAttr != null) {
-            _width = Num.fromString(widthAttr.value)
-        }
-        _height = 31
-        var heightAttr = element.attribute("height")
-        if (heightAttr != null) {
-            _height = Num.fromString(heightAttr.value)
-        }
+        _url = element.attributeValue("url", String)
+        _title = element.elementOrAbort("title").value
+        _link = element.elementOrAbort("link").value
+        _width = element.attributeValue("width", Num, 88)
+        _height = element.attributeValue("height", Num, 31)
     }
 }
 
@@ -226,12 +203,10 @@ class RssChannel {
     items { _items }
 
     construct parse(element) {
-        _title = element.elementValue("title")
-        _link = element.elementValue("link")
-        _description = element.elementValue("description")
-        if (_title == null || _link == null || _description == null) {
-            Fiber.abort("RssChannel missing required sub-element. Must contain title, link, and decription.")
-        }
+        // the following shows to ways of having required string element value
+        _title = element.elementOrAbort("title").value
+        _link = element.elementValue("link", String)
+        _description = element.elementValue("description", String)
 
         _language = element.elementValue("language")
         _copyright = element.elementValue("copyright")
@@ -248,10 +223,7 @@ class RssChannel {
             _cloud = RssCloud.parse(cloudElem)
         }
 
-        var ttlElem = element.element("ttl")
-        if (ttlElem != null) {
-            _ttl = Num.fromString(ttlElem.value)
-        }
+        var ttlElem = element.elementValue("ttl", Num, 0)
 
         var imageElem = element.element("image")
         if (imageElem != null) {
@@ -269,7 +241,7 @@ class RssChannel {
         var skipHoursEl = element.element("skipHours")
         if (skipHoursEl != null) {
             for (hour in skipHoursEl.elements("hour")) {
-                _skipHours.add(Num.fromString(hour.value))
+                _skipHours.add(hour.value(Num))
             }
         }
         _skipDays = []
@@ -288,14 +260,8 @@ class RssChannel {
 class Rss {
     channel { _channel }
     construct parse(document) {
-        var root = document.element("rss")
-        if (root == null) {
-            Fiber.abort("Missing required root element 'rss'")
-        }
-        var channelEl = root.element("channel")
-        if (channelEl == null) {
-            Fiber.abort("Missing required element 'channel' in Rss")
-        }
+        var root = document.elementOrAbort("rss")
+        var channelEl = root.elementOrAbort("channel")
         _channel = RssChannel.parse(channelEl)
     }
 }

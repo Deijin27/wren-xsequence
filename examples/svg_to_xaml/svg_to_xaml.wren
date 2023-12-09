@@ -20,9 +20,9 @@ var txt = File.read("examples/svg_to_xaml/svg_sample.svg")
 var doc = XDocument.parse(txt)
 
 // extract values from the svg
-var root = doc.element(svg + "svg")
-var figures = root.element(svg + "path").attribute("d").value
-var key = root.attribute(sodipodi + "docname").value
+var root = doc.elementOrAbort(svg + "svg")
+var figures = root.elementOrAbort(svg + "path").attributeValue("d", String)
+var key = root.attributeOrAbort(sodipodi + "docname").value
 
 // generate the xaml
 // <PathGeometry x:Key="UpArrowGeometry" Figures="M 0 4.5 l 4.5 -4.5 4.5 4.5"/>

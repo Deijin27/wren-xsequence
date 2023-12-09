@@ -13,7 +13,7 @@ This code is licenced under MIT
 
 */
 
-import "../../xsequence" for XDocument, XElement, XAttribute
+import "../../xsequence" for XDocument, XElement, XAttribute, XConverter
 
 class Color {
     r { _r }
@@ -37,7 +37,7 @@ class Color {
     static white { __white }
     static black { __black }
 
-    toString { "%(r) %(g) %(b) %(a)"}
+    toString { "Color(%(r), %(g), %(b), %(a))"}
 
     static init_() {
         __white = Color.rgb(1, 1, 1)
@@ -46,6 +46,39 @@ class Color {
 }
 
 Color.init_()
+
+class ColorConverter is XConverter {
+    construct new() {}
+    description { "Value must be color, stored as space separated numbers r g b and optionally a at the end" }
+    toString(value) {
+        var result = "%(value.r) %(value.g) %(value.b)"
+        if (value.a != 1) {
+            result = result + " %(value.a)"
+        }
+        return result
+    }
+    fromString(value) {
+        var split = value.split(" ")
+        if (split.count < 3 || split.count > 4) {
+            return null
+        }
+        var r = Num.fromString(split[0])
+        var g = Num.fromString(split[1])
+        var b = Num.fromString(split[2])
+        if (r == null || g == null || b == null) {
+            return null
+        }
+        if (split.count == 3) {
+            return Color.rgb(r, g, b)
+        }
+        var a = Num.fromString(split[3])
+        if (a == null) {
+            return null
+        }
+        return Color.rgba(r, g, b, a)
+    }
+}
+XConverter.register(Color, ColorConverter.new())
 
 class Material {
     name { _name }
