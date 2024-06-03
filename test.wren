@@ -705,10 +705,10 @@ Test.run("Stringify element") {
 
     var expected = """
 <fishies amount="2">
-  <danio name="zebra" color="red"/>
+  <danio name="zebra" color="red" />
   <!--TheComment-->
   <danio name="pea&lt;rl" color="pink">
-    <danio/>
+    <danio />
   </danio>
   <danio>val&gt;ue</danio>
   <danio><![CDATA[<fishyfish/>]]></danio>
@@ -729,7 +729,7 @@ Test.run("Stringify element with mixed content") {
             XElement.new("which", XElement.new("swims")),
         ])
 
-    var expected = """<fishies amount="2">a danio <is/> a fish <which><swims/></which></fishies>"""
+    var expected = """<fishies amount="2">a danio <is /> a fish <which><swims /></which></fishies>"""
 
     var actual = element.toString
     Assert.equal(actual, expected)
@@ -747,7 +747,7 @@ Test.run("Stringify document") {
 
     var expected = """
 <?xml version="1.0" encoding="utf-8"?>
-<Root attribute="of root"/>
+<Root attribute="of root" />
 <!--A Comment-->
 """.trim().replace("\r\n", "\n")
 
@@ -782,7 +782,7 @@ Test.run("Stringify single element with attribute namespace") {
             ])
 
     var expected = """
-<danio fish:name="zebra" xmlns:fish="https://www.fish.com"/>
+<danio fish:name="zebra" xmlns:fish="https://www.fish.com" />
 """.trim().replace("\r\n", "\n")
 
     var actual = element.toString
@@ -817,7 +817,7 @@ Test.run("Stringify single element with default element namespace") {
             ])
 
     var expected = """
-<danio name="zebra" xmlns="https://www.fish.com"/>
+<danio name="zebra" xmlns="https://www.fish.com" />
 """.trim().replace("\r\n", "\n")
 
     var actual = element.toString
@@ -845,8 +845,8 @@ Test.run("Stringify advanced namespace element") {
     var expected = """
 <UserControl x:Class="RanseiLink.Controls.ModInfoControl" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:RanseiLink.Controls">
   <StackPanel>
-    <TextBlock x:Name="NameTextBlock" Text="Mod Name"/>
-    <controls:ModInfoControl ModInfo="{Binding Mod}"/>
+    <TextBlock x:Name="NameTextBlock" Text="Mod Name" />
+    <controls:ModInfoControl ModInfo="{Binding Mod}" />
   </StackPanel>
 </UserControl>
 """.trim().replace("\r\n", "\n")
@@ -871,7 +871,7 @@ Test.run("Stringify single element attribute uses explicit namespace") {
 
     var expected = """
 <fishies xmlns:fish="https://www.fish.com">
-  <danio fish:name="zebra" xmlns="https://www.fish.com"/>
+  <danio fish:name="zebra" xmlns="https://www.fish.com" />
 </fishies>
 """.trim().replace("\r\n", "\n")
 
@@ -1199,7 +1199,7 @@ Test.run("Parse document with comments") {
 ////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse single element with attribute namespace") {
-    var elementString = "<Elem b:attr=\"val\" xmlns:b=\"bird\"/>"
+    var elementString = "<Elem b:attr=\"val\" xmlns:b=\"bird\" />"
     var parser = XParser.new(elementString)
     var result = parser.parseElement()
     var expected = XElement.new("Elem", 
@@ -1212,7 +1212,7 @@ Test.run("Parse single element with attribute namespace") {
 ////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse single element with explicit element namespace") {
-    var elementString = "<b:Elem attr=\"val\" xmlns:b=\"bird\"/>"
+    var elementString = "<b:Elem attr=\"val\" xmlns:b=\"bird\" />"
     var parser = XParser.new(elementString)
     var result = parser.parseElement()
     var expected = XElement.new("{bird}Elem", 
@@ -1225,7 +1225,7 @@ Test.run("Parse single element with explicit element namespace") {
 ////////////////////////////////////////////////////////////////////////////////
 
 Test.run("Parse single element with implicit element namespace") {
-    var elementString = "<Elem attr=\"val\" xmlns=\"bird\"/>"
+    var elementString = "<Elem attr=\"val\" xmlns=\"bird\" />"
     var parser = XParser.new(elementString)
     var result = parser.parseElement()
     var expected = XElement.new("{bird}Elem", 
@@ -1257,8 +1257,8 @@ Test.run("Parse advanced namespace element") {
     var documentString = """
 <UserControl x:Class="RanseiLink.Controls.ModInfoControl" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:RanseiLink.Controls">
   <StackPanel>
-    <TextBlock x:Name="NameTextBlock" Text="Mod Name"/>
-    <controls:ModInfoControl ModInfo="{Binding Mod}"/>
+    <TextBlock x:Name="NameTextBlock" Text="Mod Name" />
+    <controls:ModInfoControl ModInfo="{Binding Mod}" />
   </StackPanel>
 </UserControl>
 """
@@ -1287,7 +1287,7 @@ Test.run("Parse namespace priority is respected") {
 
     var documentString = """
 <fishies xmlns="https://www.shark.com" xmlns:r="bunny" r:names="zebras">
-  <danio r:name="zebra" xmlns="https://www.fish.com" xmlns:r="rabbit"/>
+  <danio r:name="zebra" xmlns="https://www.fish.com" xmlns:r="rabbit" />
 </fishies>
 """
 

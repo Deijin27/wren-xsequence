@@ -300,7 +300,7 @@ class XWriter {
             }
         } else {
             // element has no value, write short closing tag
-            _writerCallable.call("/>")
+            _writerCallable.call(" />")
         }
 
         // end the namespace scope when element has been written
