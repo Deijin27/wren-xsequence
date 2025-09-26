@@ -6,7 +6,10 @@
     {
       "label": "Run Tests",
       "type": "shell",
-      "command": "${workspaceFolder}/wren_cli.exe test.wren",
+      "command": "./wren_cli test.wren",
+      "windows": {
+        "command": "wren_cli.exe test.wren"
+      },
       "group": "build",
     }
   ]
